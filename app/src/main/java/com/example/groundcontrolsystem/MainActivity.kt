@@ -22,6 +22,14 @@ import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.ui.Alignment
+import androidx.savedstate.savedState
 import com.example.groundcontrolsystem.ui.theme.GroundControlSystemTheme
 
 class MainActivity : ComponentActivity() {
@@ -41,8 +49,10 @@ class MainActivity : ComponentActivity() {
 
 private enum class AppRoute(val route: String) {
     Dashboard("dashboard"),
-    Items("items"),
-    Settings("settings")
+    Camera("camera"),
+    Settings("settings"),
+    Gps("gps"),
+    Logs("logs")
 }
 
 @Composable
@@ -103,8 +113,52 @@ private fun LeftNavRail(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
+    val items = listOf(
+        NavItem(AppRoute.Dashboard.route, "Dashboard", Icons.Default.Home),
+        NavItem(AppRoute.Camera.route, "Camera View", Icons.AutoMirrored.Outlined.KeyboardArrowRight),
+        NavItem(AppRoute.Gps.route, "GPS", Icons.Default.Place),
+        NavItem(AppRoute.Logs.route, "Logs", Icons.Default.Warning),
+        NavItem(AppRoute.Settings.route, "Settings", Icons.Default.Settings)
+    )
+    NavigationRail(
+        modifier = modifier,
+        header = {
+            //part to put logo
+            Box(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center
+            ) {
+                Text("GCS", style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    ) {
+        val navBackStackEntry by navController.currentBackStackEntryAsState()
+        val currentDestination = navBackStackEntry?.destination
 
+        items.forEach { item ->
+            val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
+            NavigationRailItem(
+                selected = selected,
+                onClick = {
+                    navController.navigate(item.route) {
+                        popUpTo(navController.graph.findStartDestination().id) {saveState = true }
+                        launchSingleTop = true
+                        restoreState = true
+                    }
+
+                },
+                icon = { Icon(item.icon, contentDescription = item.label) },
+                label = { Text(item.label) },
+                alwaysShowLabel = true
+            )
+        }
+    }
 }
+
+private data class NavItem(
+    val route: String,
+    val label: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector
+)
 
 @Composable
 private fun Greeting(name: String, modifier: Modifier = Modifier) {
