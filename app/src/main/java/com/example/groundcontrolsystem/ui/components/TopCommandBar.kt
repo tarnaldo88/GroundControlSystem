@@ -14,7 +14,7 @@ import androidx.compose.ui.unit.dp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-public fun TopCommandBar(
+fun TopCommandBar(
     modifier: Modifier = Modifier,
     statusText: String
 ) {

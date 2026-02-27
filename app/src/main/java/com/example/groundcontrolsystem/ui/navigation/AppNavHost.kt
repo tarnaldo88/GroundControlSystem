@@ -12,7 +12,7 @@ import com.example.groundcontrolsystem.ui.screens.logs.LogsScreen
 import com.example.groundcontrolsystem.ui.screens.settings.SettingsScreen
 
 @Composable
-public fun AppNavHost(navController: NavHostController) {
+fun AppNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
         startDestination = Routes.Dashboard.route

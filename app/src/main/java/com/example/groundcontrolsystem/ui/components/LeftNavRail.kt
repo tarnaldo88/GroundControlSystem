@@ -34,7 +34,7 @@ private data class NavItem(
 )
 
 @Composable
-public fun LeftNavRail(
+fun LeftNavRail(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
