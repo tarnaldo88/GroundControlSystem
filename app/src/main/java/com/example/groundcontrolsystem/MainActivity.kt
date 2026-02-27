@@ -46,35 +46,6 @@ private enum class AppRoute(val route: String) {
     Logs("logs")
 }
 
-@Composable
-private fun TabletShell() {
-    val navController = rememberNavController()
-
-    Row(modifier = Modifier.fillMaxSize()) {
-        LeftNavRail(
-            navController = navController,
-            modifier = Modifier.fillMaxHeight().width(96.dp)
-        )
-
-        VerticalDivider(
-            modifier = Modifier.fillMaxHeight().width(1.dp)
-        )
-
-        Column(modifier = Modifier.fillMaxSize()) {
-            TopCommandBar(
-                modifier = Modifier.fillMaxWidth(),
-                statusText = "TODO will change to method that returns whether connected or not"
-            )
-
-            HorizontalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
-
-            Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                AppNavHost(navController = navController)
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopCommandBar(
