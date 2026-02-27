@@ -161,17 +161,16 @@ private data class NavItem(
 )
 
 @Composable
-private fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    GroundControlSystemTheme {
-        Greeting("Android")
+private fun AppNavHost(navController: NavHostController) {
+    NavHost(
+        navController = navController,
+        startDestination = AppRoute.Dashboard.route
+    ) {
+        composable(AppRoute.Dashboard.route) { DashboardScreen() }
+        composable(AppRoute.Camera.route) { CameraScreen() }
+        composable(AppRoute.Settings.route) { SettingsScreen() }
+        composable(AppRoute.Gps.route) { GpsScreen() }
+        composable(AppRoute.Logs.route) { LogsScreen() }
     }
+
 }
