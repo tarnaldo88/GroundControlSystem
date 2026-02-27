@@ -23,7 +23,9 @@ import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
-import com.example.groundcontrolsystem.NavItem
+import com.example.groundcontrolsystem.ui.navigation.Routes
+
+//import com.example.groundcontrolsystem.NavItem
 
 private data class NavItem(
     val route: String,
@@ -37,11 +39,11 @@ public fun LeftNavRail(
     modifier: Modifier = Modifier
 ) {
     val items = listOf(
-        NavItem(AppRoute.Dashboard.route, "Dashboard", Icons.Default.Home),
-        NavItem(AppRoute.Camera.route, "Camera View", Icons.AutoMirrored.Outlined.KeyboardArrowRight),
-        NavItem(AppRoute.Gps.route, "GPS", Icons.Default.Place),
-        NavItem(AppRoute.Logs.route, "Logs", Icons.Default.Warning),
-        NavItem(AppRoute.Settings.route, "Settings", Icons.Default.Settings)
+        NavItem(Routes.Dashboard.route, "Dashboard", Icons.Default.Home),
+        NavItem(Routes.Camera.route, "Camera View", Icons.AutoMirrored.Outlined.KeyboardArrowRight),
+        NavItem(Routes.Gps.route, "GPS", Icons.Default.Place),
+        NavItem(Routes.Logs.route, "Logs", Icons.Default.Warning),
+        NavItem(Routes.Settings.route, "Settings", Icons.Default.Settings)
     )
     NavigationRail(
         modifier = modifier,

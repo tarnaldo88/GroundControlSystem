@@ -16,8 +16,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
 import com.example.groundcontrolsystem.ui.navigation.AppNavHost
-import com.example.groundcontrolsystem.LeftNavRail
-import com.example.groundcontrolsystem.TopCommandBar
+import com.example.groundcontrolsystem.ui.components.LeftNavRail
+import com.example.groundcontrolsystem.ui.components.TopCommandBar
 
 @Composable
 private fun TabletShell() {

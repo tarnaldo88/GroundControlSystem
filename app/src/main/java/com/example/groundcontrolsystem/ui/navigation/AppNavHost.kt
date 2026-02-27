@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.groundcontrolsystem.AppRoute
+import com.example.groundcontrolsystem.ui.navigation.Routes
 import com.example.groundcontrolsystem.CameraScreen
 import com.example.groundcontrolsystem.DashboardScreen
 import com.example.groundcontrolsystem.GpsScreen
@@ -15,12 +15,12 @@ import com.example.groundcontrolsystem.SettingsScreen
 public fun AppNavHost(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = AppRoute.Dashboard.route
+        startDestination = Routes.Dashboard.route
     ) {
-        composable(AppRoute.Dashboard.route) { DashboardScreen() }
-        composable(AppRoute.Camera.route) { CameraScreen() }
-        composable(AppRoute.Settings.route) { SettingsScreen() }
-        composable(AppRoute.Gps.route) { GpsScreen() }
-        composable(AppRoute.Logs.route) { LogsScreen() }
+        composable(Routes.Dashboard.route) { DashboardScreen() }
+        composable(Routes.Camera.route) { CameraScreen() }
+        composable(Routes.Settings.route) { SettingsScreen() }
+        composable(Routes.Gps.route) { GpsScreen() }
+        composable(Routes.Logs.route) { LogsScreen() }
     }
 }
