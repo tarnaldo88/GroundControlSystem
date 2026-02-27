@@ -38,14 +38,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-private enum class AppRoute(val route: String) {
-    Dashboard("dashboard"),
-    Camera("camera"),
-    Settings("settings"),
-    Gps("gps"),
-    Logs("logs")
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun TopCommandBar(
@@ -70,52 +62,7 @@ private fun TopCommandBar(
     )
 }
 
-@Composable
-private fun LeftNavRail(
-    navController: NavHostController,
-    modifier: Modifier = Modifier
-) {
-    val items = listOf(
-        NavItem(AppRoute.Dashboard.route, "Dashboard", Icons.Default.Home),
-        NavItem(AppRoute.Camera.route, "Camera View", Icons.AutoMirrored.Outlined.KeyboardArrowRight),
-        NavItem(AppRoute.Gps.route, "GPS", Icons.Default.Place),
-        NavItem(AppRoute.Logs.route, "Logs", Icons.Default.Warning),
-        NavItem(AppRoute.Settings.route, "Settings", Icons.Default.Settings)
-    )
-    NavigationRail(
-        modifier = modifier,
-        header = {
-            Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                Text("GCS", style = MaterialTheme.typography.titleMedium)
-            }
-        }
-    ) {
-        val navBackStackEntry by navController.currentBackStackEntryAsState()
-        val currentDestination = navBackStackEntry?.destination
 
-        items.forEach { item ->
-            val selected = currentDestination?.hierarchy?.any { it.route == item.route } == true
-            NavigationRailItem(
-                selected = selected,
-                onClick = {
-                    navController.navigate(item.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
-                        }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                icon = { Icon(item.icon, contentDescription = item.label) },
-                label = { Text(item.label) },
-                alwaysShowLabel = true
-            )
-        }
-    }
-}
 
 private data class NavItem(
     val route: String,
