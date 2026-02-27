@@ -20,7 +20,7 @@ import com.example.groundcontrolsystem.ui.components.LeftNavRail
 import com.example.groundcontrolsystem.ui.components.TopCommandBar
 
 @Composable
-private fun TabletShell() {
+fun AppShell() {
     val navController = rememberNavController()
 
     Row(modifier = Modifier.fillMaxSize()) {
