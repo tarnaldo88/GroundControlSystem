@@ -4,14 +4,24 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.*
+import androidx.compose.foundation.layout.*
 import com.example.groundcontrolsystem.ui.theme.GroundControlSystemTheme
 
 class MainActivity : ComponentActivity() {
@@ -37,7 +47,33 @@ private enum class AppRoute(val route: String) {
 
 @Composable
 private fun TabletShell() {
+    val navController = rememberNavController()
 
+    Row(modifier = Modifier.fillMaxSize()) {
+        LeftNavRail(
+            navController = navController,
+            modifier = Modifier.fillMaxHeight().width(96.dp)
+        )
+
+        HorizontalDivider(
+            modifier = Modifier.fillMaxHeight().width(1.dp)
+        )
+
+        Column(modifier = Modifier.fillMaxSize()) {
+            TopCommandBar(
+                modifier = Modifier.fillMaxWidth(),
+                title = "Ground Control System",
+                statusText = "Connected"
+            )
+
+            VerticalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
+
+            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+                AppNavHost(navController = navController)
+            }
+        }
+
+    }
 }
 
 @Composable
