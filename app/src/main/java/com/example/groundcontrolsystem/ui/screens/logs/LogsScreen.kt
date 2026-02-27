@@ -1,5 +1,7 @@
 package com.example.groundcontrolsystem.ui.screens.logs
 
+import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,9 +14,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 
 @Composable
@@ -90,11 +94,29 @@ private fun LogsList(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun LogRow(
     line: String,
     onLongPress: (() -> Unit)? = null,
 ) {
-    
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.medium,
+        modifier = Modifier
+            .fillMaxWidth()
+            .combinedClickable(
+                onClick = {},
+                onLongClick = { onLongPress?.invoke() }
+            )
+    ) {
+        Text(
+            text = line,
+            modifier= Modifier.padding(12.dp),
+            style = MaterialTheme.typography.bodyMedium.copy(
+                fontFamily = FontFamily.Monospace
+            )
+        )
+    }
 }
 
