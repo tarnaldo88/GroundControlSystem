@@ -86,7 +86,7 @@ private fun TopCommandBar(
     TopAppBar(
         modifier = modifier,
         title = {
-            Column() {
+            Column {
                 Text(title, style = MaterialTheme.typography.titleLarge)
                 Text(statusText, style = MaterialTheme.typography.labelMedium)
             }
@@ -114,9 +114,9 @@ private fun LeftNavRail(
     NavigationRail(
         modifier = modifier,
         header = {
-            //part to put logo
             Box(
-                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center
+                modifier = Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                contentAlignment = Alignment.Center
             ) {
                 Text("GCS", style = MaterialTheme.typography.titleMedium)
             }
@@ -131,11 +131,12 @@ private fun LeftNavRail(
                 selected = selected,
                 onClick = {
                     navController.navigate(item.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
                         launchSingleTop = true
                         restoreState = true
                     }
-
                 },
                 icon = { Icon(item.icon, contentDescription = item.label) },
                 label = { Text(item.label) },
