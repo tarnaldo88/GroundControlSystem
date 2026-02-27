@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.compose.rememberNavController
-import com.example.groundcontrolsystem.AppNavHost
+import com.example.groundcontrolsystem.ui.navigation.AppNavHost
 import com.example.groundcontrolsystem.LeftNavRail
 import com.example.groundcontrolsystem.TopCommandBar
 
