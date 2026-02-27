@@ -17,10 +17,18 @@ fun AppNavHost(navController: NavHostController) {
         navController = navController,
         startDestination = Routes.Dashboard.route
     ) {
+        //placeholder until log system implemented
+        val list = mutableListOf<String>()
+
+        //placeholder loop
+        for(i in 0 until 15) {
+            list.add("Log Line $i")
+        }
+
         composable(Routes.Dashboard.route) { DashboardScreen() }
         composable(Routes.Camera.route) { CameraScreen() }
         composable(Routes.Settings.route) { SettingsScreen() }
         composable(Routes.Gps.route) { GpsScreen() }
-        composable(Routes.Logs.route) { LogsScreen() }
+        composable(Routes.Logs.route) { LogsScreen(list) }
     }
 }
