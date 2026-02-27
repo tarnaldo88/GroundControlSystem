@@ -38,37 +38,11 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun TopCommandBar(
-    modifier: Modifier = Modifier,
-    statusText: String
-) {
-    val title = "Ground Control System"
-
-    TopAppBar(
-        modifier = modifier,
-        title = {
-            Column {
-                Text(title, style = MaterialTheme.typography.titleLarge)
-                Text(statusText, style = MaterialTheme.typography.labelMedium)
-            }
-        },
-        actions = {
-            TextButton(onClick = { /*TODO*/ }) { Text("Log View") }
-            TextButton(onClick = { /*TODO*/ }) { Text("Options") }
-            Spacer(Modifier.width(8.dp))
-        }
-    )
-}
 
 
 
-private data class NavItem(
-    val route: String,
-    val label: String,
-    val icon: androidx.compose.ui.graphics.vector.ImageVector
-)
+
+
 
 @Composable
 private fun DashboardScreen() {
