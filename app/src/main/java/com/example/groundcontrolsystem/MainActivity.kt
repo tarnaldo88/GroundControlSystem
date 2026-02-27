@@ -63,8 +63,7 @@ private fun TabletShell() {
         Column(modifier = Modifier.fillMaxSize()) {
             TopCommandBar(
                 modifier = Modifier.fillMaxWidth(),
-                title = "Ground Control System",
-                statusText = "Connected"
+                statusText = "TODO will change to method that returns whether connected or not"
             )
 
             HorizontalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
@@ -80,9 +79,10 @@ private fun TabletShell() {
 @Composable
 private fun TopCommandBar(
     modifier: Modifier = Modifier,
-    title: String,
     statusText: String
 ) {
+    val title = "Ground Control System"
+
     TopAppBar(
         modifier = modifier,
         title = {
