@@ -4,32 +4,26 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import androidx.compose.ui.unit.dp
-import androidx.navigation.NavDestination.Companion.hierarchy
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Dashboard
-import androidx.compose.material.icons.filled.List
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material3.*
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.*
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
-import androidx.savedstate.savedState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.navigation.NavDestination.Companion.hierarchy
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.rememberNavController
 import com.example.groundcontrolsystem.ui.theme.GroundControlSystemTheme
 
 class MainActivity : ComponentActivity() {
@@ -37,12 +31,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            MaterialTheme {
-                setContent {
-
-                }
+            GroundControlSystemTheme {
+                TabletShell()
             }
-
         }
     }
 }
@@ -65,7 +56,7 @@ private fun TabletShell() {
             modifier = Modifier.fillMaxHeight().width(96.dp)
         )
 
-        HorizontalDivider(
+        VerticalDivider(
             modifier = Modifier.fillMaxHeight().width(1.dp)
         )
 
@@ -76,9 +67,9 @@ private fun TabletShell() {
                 statusText = "Connected"
             )
 
-            VerticalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
+            HorizontalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
 
-            Box(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 AppNavHost(navController = navController)
             }
         }
@@ -101,8 +92,8 @@ private fun TopCommandBar(
             }
         },
         actions = {
-            TextButton(onClick = { /*TODO*/ }) {Text("Log View") }
-            TextButton(onClick = { /*TODO*/ }) {Text("Options") }
+            TextButton(onClick = { /*TODO*/ }) { Text("Log View") }
+            TextButton(onClick = { /*TODO*/ }) { Text("Options") }
             Spacer(Modifier.width(8.dp))
         }
     )
@@ -140,7 +131,7 @@ private fun LeftNavRail(
                 selected = selected,
                 onClick = {
                     navController.navigate(item.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {saveState = true }
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                         launchSingleTop = true
                         restoreState = true
                     }
@@ -172,5 +163,49 @@ private fun AppNavHost(navController: NavHostController) {
         composable(AppRoute.Gps.route) { GpsScreen() }
         composable(AppRoute.Logs.route) { LogsScreen() }
     }
+}
 
+@Composable
+private fun DashboardScreen() {
+    Card(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Dashboard Page")
+        }
+    }
+}
+
+@Composable
+private fun CameraScreen() {
+    Card(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Camera Page")
+        }
+    }
+}
+
+@Composable
+private fun SettingsScreen() {
+    Card(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Settings Page")
+        }
+    }
+}
+
+@Composable
+private fun GpsScreen() {
+    Card(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("GPS Page")
+        }
+    }
+}
+
+@Composable
+private fun LogsScreen() {
+    Card(modifier = Modifier.fillMaxSize()) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("Logs Page")
+        }
+    }
 }
