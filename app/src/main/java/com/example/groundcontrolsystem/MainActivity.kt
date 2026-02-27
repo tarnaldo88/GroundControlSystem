@@ -72,8 +72,38 @@ private fun TabletShell() {
                 AppNavHost(navController = navController)
             }
         }
-
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun TopCommandBar(
+    modifier: Modifier = Modifier,
+    title: String,
+    statusText: String
+) {
+    TopAppBar(
+        modifier = modifier,
+        title = {
+            Column() {
+                Text(title, style = MaterialTheme.typography.titleLarge)
+                Text(statusText, style = MaterialTheme.typography.labelMedium)
+            }
+        },
+        actions = {
+            TextButton(onClick = { /*TODO*/ }) {Text("Log View") }
+            TextButton(onClick = { /*TODO*/ }) {Text("Options") }
+            Spacer(Modifier.width(8.dp))
+        }
+    )
+}
+
+@Composable
+private fun LeftNavRail(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+
 }
 
 @Composable
