@@ -51,8 +51,8 @@ dependencies {
 
     implementation("androidx.navigation:navigation-compose:2.8.5")
     
-    // Google Maps
-    implementation(libs.maps.compose)
+    // OpenStreetMap
+    implementation(libs.osmdroid)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
