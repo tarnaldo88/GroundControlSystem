@@ -50,6 +50,9 @@ dependencies {
     implementation(libs.androidx.compose.material.icons.extended)
 
     implementation("androidx.navigation:navigation-compose:2.8.5")
+    
+    // Google Maps
+    implementation(libs.maps.compose)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
