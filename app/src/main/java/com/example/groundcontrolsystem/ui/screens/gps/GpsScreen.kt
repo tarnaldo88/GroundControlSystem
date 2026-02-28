@@ -40,7 +40,7 @@ fun GpsScreen() {
             
             // Center and zoom
             controller.setZoom(15.0)
-            controller.setCenter(GeoPoint(1.35, 103.87)) // Singapore
+            controller.setCenter(GeoPoint(34.27, -118.77)) // Simi
 
 
 //            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
@@ -50,9 +50,9 @@ fun GpsScreen() {
     // Add a marker
     DisposableEffect(mapView) {
         val marker = Marker(mapView)
-        marker.position = GeoPoint(1.35, 103.87)
+        marker.position = GeoPoint(34.27, -118.77)
         marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
-        marker.title = "Singapore"
+        marker.title = "Simi"
         mapView.overlays.add(marker)
         
         onDispose {
