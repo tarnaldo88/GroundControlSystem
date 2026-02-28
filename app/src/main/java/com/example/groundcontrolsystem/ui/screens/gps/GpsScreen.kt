@@ -11,6 +11,7 @@ import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import org.osmdroid.views.CustomZoomButtonsDisplay
 import org.osmdroid.views.overlay.Marker
 
 @Composable
@@ -24,8 +25,24 @@ fun GpsScreen() {
         MapView(context).apply {
             setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
+            
+            // Lock map within bounds
+            setScrollableAreaLimitLatitude(85.0, -85.0, 0)
+            
+            // Limit zoom levels
+            minZoomLevel = 3.0
+            maxZoomLevel = 20.0
+            
+            // Prevent map from repeating horizontally (wrapping)
+            isVerticalMapRepetitionEnabled = false
+            isHorizontalMapRepetitionEnabled = false
+            
+            // Center and zoom
             controller.setZoom(15.0)
             controller.setCenter(GeoPoint(1.35, 103.87)) // Singapore
+
+            // Hide the default zoom buttons if they cause layout issues
+            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
         }
     }
 
