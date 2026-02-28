@@ -31,8 +31,8 @@ fun GpsScreen() {
             setScrollableAreaLimitLatitude(85.0, -85.0, 0)
             
             // Limit zoom levels
-            minZoomLevel = 3.0
-            maxZoomLevel = 20.0
+//            minZoomLevel = 3.0
+//            maxZoomLevel = 20.0
             
             // Prevent map from repeating horizontally (wrapping)
             isVerticalMapRepetitionEnabled = false
@@ -42,8 +42,8 @@ fun GpsScreen() {
             controller.setZoom(15.0)
             controller.setCenter(GeoPoint(1.35, 103.87)) // Singapore
 
-            // Hide the default zoom buttons if they cause layout issues
-            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
+
+//            zoomController.setVisibility(org.osmdroid.views.CustomZoomButtonsController.Visibility.NEVER)
         }
     }
 
