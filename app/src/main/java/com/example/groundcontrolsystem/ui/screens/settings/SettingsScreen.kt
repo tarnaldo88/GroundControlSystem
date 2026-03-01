@@ -1,6 +1,5 @@
 package com.example.groundcontrolsystem.ui.screens.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -18,6 +17,12 @@ fun SettingsScreen() {
     var metricUnits by remember { mutableStateOf(true) }
     var darkMode by remember { mutableStateOf(true) }
     var cameraResolution by remember { mutableStateOf("1080p") }
+    
+    // Drone Specific States
+    var maxAltitude by remember { mutableFloatStateOf(120f) }
+    var returnToHomeAltitude by remember { mutableFloatStateOf(50f) }
+    var obstacleAvoidance by remember { mutableStateOf(true) }
+    var droneModel by remember { mutableStateOf("Quadcopter X-1") }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
@@ -30,6 +35,43 @@ fun SettingsScreen() {
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
+            item { SettingHeader("Drone Configuration") }
+            item {
+                ActionSetting(
+                    icon = Icons.Default.Flight,
+                    title = "Drone Model",
+                    subtitle = droneModel,
+                    onClick = { /* TODO: Selection dialog */ }
+                )
+            }
+            item {
+                ToggleSetting(
+                    icon = Icons.Default.Security,
+                    title = "Obstacle Avoidance",
+                    subtitle = "Use ultrasonic and vision sensors to prevent collisions",
+                    checked = obstacleAvoidance,
+                    onCheckedChange = { obstacleAvoidance = it }
+                )
+            }
+            item {
+                ActionSetting(
+                    icon = Icons.Default.VerticalAlignTop,
+                    title = "Max Altitude",
+                    subtitle = "${maxAltitude.toInt()}m (Current Limit)",
+                    onClick = { /* TODO: Slider dialog */ }
+                )
+            }
+            item {
+                ActionSetting(
+                    icon = Icons.Default.Home,
+                    title = "RTH Altitude",
+                    subtitle = "Return to home altitude: ${returnToHomeAltitude.toInt()}m",
+                    onClick = { /* TODO: Slider dialog */ }
+                )
+            }
+
+            item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
+
             item { SettingHeader("General") }
             item {
                 ToggleSetting(
@@ -83,14 +125,6 @@ fun SettingsScreen() {
                     icon = Icons.Default.Info,
                     title = "Version",
                     subtitle = "1.0.0 (Stable)",
-                    onClick = { }
-                )
-            }
-            item {
-                ActionSetting(
-                    icon = Icons.Default.Description,
-                    title = "Licenses",
-                    subtitle = "Open source libraries used",
                     onClick = { }
                 )
             }
