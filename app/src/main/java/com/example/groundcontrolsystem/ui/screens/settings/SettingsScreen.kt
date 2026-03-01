@@ -23,6 +23,12 @@ fun SettingsScreen() {
     var returnToHomeAltitude by remember { mutableFloatStateOf(50f) }
     var obstacleAvoidance by remember { mutableStateOf(true) }
     var droneModel by remember { mutableStateOf("Quadcopter X-1") }
+    
+    // Additional Drone Settings
+    var signalFailsafe by remember { mutableStateOf(true) }
+    var lowBatteryRTH by remember { mutableStateOf(true) }
+    var flightMode by remember { mutableStateOf("GPS/Position") }
+    var maxDistance by remember { mutableFloatStateOf(500f) }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
@@ -45,12 +51,42 @@ fun SettingsScreen() {
                 )
             }
             item {
+                ActionSetting(
+                    icon = Icons.Default.Mode,
+                    title = "Flight Mode",
+                    subtitle = "Current: $flightMode",
+                    onClick = { /* TODO: Selection dialog */ }
+                )
+            }
+            item {
                 ToggleSetting(
                     icon = Icons.Default.Security,
                     title = "Obstacle Avoidance",
-                    subtitle = "Use ultrasonic and vision sensors to prevent collisions",
+                    subtitle = "Use sensors to prevent collisions",
                     checked = obstacleAvoidance,
                     onCheckedChange = { obstacleAvoidance = it }
+                )
+            }
+
+            item { HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp)) }
+
+            item { SettingHeader("Safety & Failsafes") }
+            item {
+                ToggleSetting(
+                    icon = Icons.Default.WifiOff,
+                    title = "Signal Failsafe (RTH)",
+                    subtitle = "Return to home if signal is lost",
+                    checked = signalFailsafe,
+                    onCheckedChange = { signalFailsafe = it }
+                )
+            }
+            item {
+                ToggleSetting(
+                    icon = Icons.Default.BatteryAlert,
+                    title = "Low Battery RTH",
+                    subtitle = "Auto-return when battery is below 20%",
+                    checked = lowBatteryRTH,
+                    onCheckedChange = { lowBatteryRTH = it }
                 )
             }
             item {
@@ -63,9 +99,17 @@ fun SettingsScreen() {
             }
             item {
                 ActionSetting(
+                    icon = Icons.Default.Map,
+                    title = "Max Distance",
+                    subtitle = "${maxDistance.toInt()}m (Geofence)",
+                    onClick = { /* TODO: Slider dialog */ }
+                )
+            }
+            item {
+                ActionSetting(
                     icon = Icons.Default.Home,
                     title = "RTH Altitude",
-                    subtitle = "Return to home altitude: ${returnToHomeAltitude.toInt()}m",
+                    subtitle = "Safe return altitude: ${returnToHomeAltitude.toInt()}m",
                     onClick = { /* TODO: Slider dialog */ }
                 )
             }
@@ -86,7 +130,7 @@ fun SettingsScreen() {
                 ToggleSetting(
                     icon = Icons.Default.Straighten,
                     title = "Metric Units",
-                    subtitle = "Use meters and km/h instead of feet and mph",
+                    subtitle = "Use meters and km/h",
                     checked = metricUnits,
                     onCheckedChange = { metricUnits = it }
                 )

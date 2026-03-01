@@ -2,56 +2,125 @@ package com.example.groundcontrolsystem.ui.screens.logs
 
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.material3.Card
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.FilterList
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
+enum class LogLevel {
+    INFO, WARNING, ERROR, DEBUG
+}
+
+data class LogEntry(
+    val timestamp: String,
+    val level: LogLevel,
+    val message: String
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun LogsScreen(
-    logs: List<String>,
+    logs: List<LogEntry>,
     modifier: Modifier = Modifier,
     onClear: (() -> Unit)? = null,
-    onLogLongPress: ((String) -> Unit)? = null,
 ) {
-    Column(modifier = modifier.fillMaxSize()) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 12.dp),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text("Logs", style = MaterialTheme.typography.titleLarge)
+    var selectedFilter by remember { mutableStateOf<LogLevel?>(null) }
+    
+    val filteredLogs = remember(logs, selectedFilter) {
+        if (selectedFilter == null) logs else logs.filter { it.level == selectedFilter }
+    }
 
-            if(onClear != null) {
-                TextButton(onClick = onClear) {
-                    Text("Clear")
+    Column(modifier = modifier.fillMaxSize().padding(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("System Logs", style = MaterialTheme.typography.headlineSmall)
+            
+            Row {
+                // Filter Chips
+                LogLevel.values().forEach { level ->
+                    FilterChip(
+                        selected = selectedFilter == level,
+                        onClick = { selectedFilter = if (selectedFilter == level) null else level },
+                        label = { Text(level.name) },
+                        modifier = Modifier.padding(start = 4.dp)
+                    )
+                }
+                
+                if (onClear != null) {
+                    IconButton(onClick = onClear) {
+                        Icon(Icons.Default.FilterList, contentDescription = "Clear")
+                    }
                 }
             }
         }
 
-        if(logs.isEmpty()) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        if (filteredLogs.isEmpty()) {
             EmptyLogsState()
         } else {
-            LogsList(
-                logs = logs,
-                onLogLongPress = onLogLongPress
+            Card(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    itemsIndexed(filteredLogs) { _, entry ->
+                        LogRow(entry)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun LogRow(entry: LogEntry) {
+    val color = when (entry.level) {
+        LogLevel.ERROR -> MaterialTheme.colorScheme.error
+        LogLevel.WARNING -> Color(0xFFFFA000) // Amber
+        LogLevel.INFO -> MaterialTheme.colorScheme.primary
+        LogLevel.DEBUG -> MaterialTheme.colorScheme.secondary
+    }
+
+    Surface(
+        tonalElevation = 1.dp,
+        shape = MaterialTheme.shapes.small,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = "[${entry.level.name}]",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        fontFamily = FontFamily.Monospace
+                    ),
+                    color = color
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = entry.timestamp,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            }
+            Text(
+                text = entry.message,
+                style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                modifier = Modifier.padding(top = 2.dp)
             )
         }
     }
@@ -59,66 +128,7 @@ fun LogsScreen(
 
 @Composable
 private fun EmptyLogsState() {
-    Card(modifier = Modifier.fillMaxSize()) {
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp)
-        ) {
-            Text(
-                "No logs",
-                modifier = Modifier.align(Alignment.Center),
-            )
-        }
+    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Text("No logs match the current filter", style = MaterialTheme.typography.bodyMedium)
     }
 }
-
-@Composable
-private fun LogsList(
-    logs: List<String>,
-    onLogLongPress: ((String) -> Unit)?,
-) {
-    Card(modifier = Modifier.fillMaxSize()) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(12.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            itemsIndexed(
-                items = logs,
-                key = { index, _ -> index }
-            ) { _, line ->
-                LogRow(
-                    line = line,
-                    onLongPress = { onLogLongPress?.invoke(line) }
-                )
-            }
-        }
-    }
-}
-
-@OptIn(ExperimentalFoundationApi::class)
-@Composable
-private fun LogRow(
-    line: String,
-    onLongPress: (() -> Unit)? = null,
-) {
-    Surface(
-        tonalElevation = 1.dp,
-        shape = MaterialTheme.shapes.medium,
-        modifier = Modifier
-            .fillMaxWidth()
-            .combinedClickable(
-                onClick = {},
-                onLongClick = { onLongPress?.invoke() }
-            )
-    ) {
-        Text(
-            text = line,
-            modifier= Modifier.padding(12.dp),
-            style = MaterialTheme.typography.bodyMedium.copy(
-                fontFamily = FontFamily.Monospace
-            )
-        )
-    }
-}
-
