@@ -10,6 +10,7 @@ import com.example.groundcontrolsystem.ui.screens.dashboard.DashboardScreen
 import com.example.groundcontrolsystem.ui.screens.gps.GpsScreen
 import com.example.groundcontrolsystem.ui.screens.logs.LogsScreen
 import com.example.groundcontrolsystem.ui.screens.settings.SettingsScreen
+import com.example.groundcontrolsystem.ui.screens.missionplan.MissionPlanScreen
 
 @Composable
 fun AppNavHost(navController: NavHostController) {
@@ -30,5 +31,6 @@ fun AppNavHost(navController: NavHostController) {
         composable(Routes.Settings.route) { SettingsScreen() }
         composable(Routes.Gps.route) { GpsScreen() }
         composable(Routes.Logs.route) { LogsScreen(list) }
+        composable(Routes.MissionPlan.route) { MissionPlanScreen() }
     }
 }
