@@ -5,5 +5,6 @@ public enum class Routes(val route: String) {
     Camera("camera"),
     Settings("settings"),
     Gps("gps"),
-    Logs("logs")
+    Logs("logs"),
+    MissionPlan("mission_plan")
 }
