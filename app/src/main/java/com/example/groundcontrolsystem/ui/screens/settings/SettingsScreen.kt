@@ -56,8 +56,8 @@ fun SettingsScreen() {
             item {
                 ToggleSetting(
                     icon = Icons.Default.Brightness4,
-                    title = "Dark Mode",
-                    subtitle = "Toggle dark/light theme",
+                    title = "Night Mode",
+                    subtitle = "Toggle night/day theme",
                     checked = darkMode,
                     onCheckedChange = { darkMode = it }
                 )
