@@ -159,6 +159,13 @@ fun CameraContent(modifier: Modifier = Modifier) {
                 }) {
                     Icon(Icons.Default.Add, contentDescription = "Zoom In")
                 }
+
+                FloatingActionButton(
+                    onClick = { /* TODO: Implement capture logic */ },
+                    containerColor = MaterialTheme.colorScheme.primary
+                ) {
+                    Text(text = "Toggle IR")
+                }
             }
         }
         
