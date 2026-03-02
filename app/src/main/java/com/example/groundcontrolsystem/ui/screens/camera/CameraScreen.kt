@@ -133,38 +133,58 @@ fun CameraContent(modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Zoom Out
-                IconButton(onClick = {
-                    val currentZoom = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: zoomRatio
-                    val minZoom = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1f
-                    val newZoom = (currentZoom - 0.5f).coerceAtLeast(minZoom)
-                    camera?.cameraControl?.setZoomRatio(newZoom)
-                }) {
-                    Icon(Icons.Default.Remove, contentDescription = "Zoom Out")
+                FilledTonalIconButton(
+                    onClick = {
+                        val currentZoom = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: zoomRatio
+                        val minZoom = camera?.cameraInfo?.zoomState?.value?.minZoomRatio ?: 1f
+                        val newZoom = (currentZoom - 0.5f).coerceAtLeast(minZoom)
+                        camera?.cameraControl?.setZoomRatio(newZoom)
+                    },
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Remove,
+                        contentDescription = "Zoom Out",
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
 
                 // Shutter Button
                 FloatingActionButton(
                     onClick = { /* TODO: Implement capture logic */ },
-                    containerColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(72.dp)
                 ) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = "Take Picture")
+                    Icon(
+                        imageVector = Icons.Default.CameraAlt,
+                        contentDescription = "Take Picture",
+                        modifier = Modifier.size(36.dp)
+                    )
                 }
 
                 // Zoom In
-                IconButton(onClick = {
-                    val currentZoom = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: zoomRatio
-                    val maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 5f
-                    val newZoom = (currentZoom + 0.5f).coerceAtMost(maxZoom)
-                    camera?.cameraControl?.setZoomRatio(newZoom)
-                }) {
-                    Icon(Icons.Default.Add, contentDescription = "Zoom In")
+                FilledTonalIconButton(
+                    onClick = {
+                        val currentZoom = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: zoomRatio
+                        val maxZoom = camera?.cameraInfo?.zoomState?.value?.maxZoomRatio ?: 5f
+                        val newZoom = (currentZoom + 0.5f).coerceAtMost(maxZoom)
+                        camera?.cameraControl?.setZoomRatio(newZoom)
+                    },
+                    modifier = Modifier.size(56.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Zoom In",
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
 
-                FloatingActionButton(
-                    onClick = { /* TODO: Implement capture logic */ },
-                    containerColor = MaterialTheme.colorScheme.primary
+                // IR Toggle
+                FilledTonalButton(
+                    onClick = { /* TODO: Implement IR toggle logic */ },
+                    modifier = Modifier.height(56.dp)
                 ) {
-                    Text(text = "Toggle IR")
+                    Text(text = "IR")
                 }
             }
         }
