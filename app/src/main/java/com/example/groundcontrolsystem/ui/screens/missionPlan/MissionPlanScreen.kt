@@ -1,5 +1,8 @@
 package com.example.groundcontrolsystem.ui.screens.missionplan
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -21,6 +24,8 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
+import java.io.BufferedReader
+import java.io.InputStreamReader
 
 data class Waypoint(
     val id: Int,
@@ -36,6 +41,25 @@ fun MissionPlanScreen() {
     var waypoints by remember { mutableStateOf(listOf<Waypoint>()) }
     var missionObjectives by remember { mutableStateOf("") }
     var showObjectivesDialog by remember { mutableStateOf(false) }
+
+    // File Picker Launcher
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument(),
+        onResult = { uri: Uri? ->
+            uri?.let {
+                try {
+                    context.contentResolver.openInputStream(it)?.use { inputStream ->
+                        val reader = BufferedReader(InputStreamReader(inputStream))
+                        val content = reader.readText()
+                        missionObjectives = content
+                    }
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Handle error (e.g., show a snackbar)
+                }
+            }
+        }
+    )
     
     val mapView = remember {
         MapView(context).apply {
@@ -153,8 +177,13 @@ fun MissionPlanScreen() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text("Mission Plan", style = MaterialTheme.typography.titleLarge)
-                IconButton(onClick = { showObjectivesDialog = true }) {
-                    Icon(Icons.Default.EditNote, contentDescription = "Edit Objectives")
+                Row {
+                    IconButton(onClick = { filePickerLauncher.launch(arrayOf("text/plain")) }) {
+                        Icon(Icons.Default.FileUpload, contentDescription = "Upload Objectives")
+                    }
+                    IconButton(onClick = { showObjectivesDialog = true }) {
+                        Icon(Icons.Default.EditNote, contentDescription = "Edit Objectives")
+                    }
                 }
             }
 
@@ -166,11 +195,27 @@ fun MissionPlanScreen() {
                     )
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
-                        Text(
-                            text = "Objectives:",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "Objectives:",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            IconButton(
+                                onClick = { missionObjectives = "" },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    Icons.Default.Clear,
+                                    contentDescription = "Clear Objectives",
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
                         Text(
                             text = missionObjectives,
                             style = MaterialTheme.typography.bodyMedium
