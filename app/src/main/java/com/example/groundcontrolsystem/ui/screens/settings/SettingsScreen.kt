@@ -12,10 +12,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SettingsScreen() {
+fun SettingsScreen(
+    isNightVision: Boolean = false,
+    onNightVisionToggle: (Boolean) -> Unit = {}
+) {
     var autoConnect by remember { mutableStateOf(false) }
     var metricUnits by remember { mutableStateOf(true) }
-    var darkMode by remember { mutableStateOf(true) }
     var cameraResolution by remember { mutableStateOf("1080p") }
     
     // Drone Specific States
@@ -142,10 +144,10 @@ fun SettingsScreen() {
             item {
                 ToggleSetting(
                     icon = Icons.Default.Brightness4,
-                    title = "Night Mode",
-                    subtitle = "Toggle night/day theme",
-                    checked = darkMode,
-                    onCheckedChange = { darkMode = it }
+                    title = "Night Vision",
+                    subtitle = "Switch to low-light red interface",
+                    checked = isNightVision,
+                    onCheckedChange = onNightVisionToggle
                 )
             }
 
