@@ -20,7 +20,10 @@ import com.example.groundcontrolsystem.ui.components.LeftNavRail
 import com.example.groundcontrolsystem.ui.components.TopCommandBar
 
 @Composable
-fun AppShell() {
+fun AppShell(
+    isNightVision: Boolean = false,
+    onNightVisionToggle: (Boolean) -> Unit = {}
+) {
     val navController = rememberNavController()
 
     Row(modifier = Modifier.fillMaxSize()) {
