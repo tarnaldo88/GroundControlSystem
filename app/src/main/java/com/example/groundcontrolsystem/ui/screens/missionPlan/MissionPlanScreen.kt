@@ -34,6 +34,8 @@ fun MissionPlanScreen() {
     Configuration.getInstance().userAgentValue = context.packageName
 
     var waypoints by remember { mutableStateOf(listOf<Waypoint>()) }
+    var missionObjectives by remember { mutableStateOf("") }
+    var showObjectivesDialog by remember { mutableStateOf(false) }
     
     val mapView = remember {
         MapView(context).apply {
@@ -82,6 +84,36 @@ fun MissionPlanScreen() {
         mapView.invalidate()
     }
 
+    if (showObjectivesDialog) {
+        var tempObjectives by remember { mutableStateOf(missionObjectives) }
+        AlertDialog(
+            onDismissRequest = { showObjectivesDialog = false },
+            title = { Text("Edit Mission Objectives") },
+            text = {
+                OutlinedTextField(
+                    value = tempObjectives,
+                    onValueChange = { tempObjectives = it },
+                    label = { Text("Describe the mission") },
+                    modifier = Modifier.fillMaxWidth().height(150.dp),
+                    placeholder = { Text("e.g. Survey the north perimeter and check for leaks.") }
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    missionObjectives = tempObjectives
+                    showObjectivesDialog = false
+                }) {
+                    Text("Save")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showObjectivesDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Row(modifier = Modifier.fillMaxSize()) {
         // Map Section (Left side)
         Surface(
@@ -115,10 +147,42 @@ fun MissionPlanScreen() {
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text("Mission Objectives", style = MaterialTheme.typography.titleLarge)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Mission Plan", style = MaterialTheme.typography.titleLarge)
+                IconButton(onClick = { showObjectivesDialog = true }) {
+                    Icon(Icons.Default.EditNote, contentDescription = "Edit Objectives")
+                }
+            }
+
+            if (missionObjectives.isNotEmpty()) {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
+                    )
+                ) {
+                    Column(modifier = Modifier.padding(12.dp)) {
+                        Text(
+                            text = "Objectives:",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = missionObjectives,
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                }
+            }
+
+            Text("Waypoints", style = MaterialTheme.typography.titleSmall)
             
             if (waypoints.isEmpty()) {
-                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
                     Text("Tap on map to add waypoints", style = MaterialTheme.typography.bodyMedium)
                 }
             } else {
@@ -132,16 +196,16 @@ fun MissionPlanScreen() {
                         }
                     }
                 }
-                
-                Button(
-                    onClick = { /* TODO: Launch Mission */ },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = waypoints.isNotEmpty()
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null)
-                    Spacer(Modifier.width(8.dp))
-                    Text("Start Mission")
-                }
+            }
+
+            Button(
+                onClick = { /* TODO: Launch Mission */ },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = waypoints.isNotEmpty() || missionObjectives.isNotEmpty()
+            ) {
+                Icon(Icons.Default.PlayArrow, contentDescription = null)
+                Spacer(Modifier.width(8.dp))
+                Text("Start Mission")
             }
         }
     }
