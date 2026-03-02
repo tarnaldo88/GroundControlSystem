@@ -15,7 +15,11 @@ import com.example.groundcontrolsystem.ui.screens.settings.SettingsScreen
 import com.example.groundcontrolsystem.ui.screens.missionplan.MissionPlanScreen
 
 @Composable
-fun AppNavHost(navController: NavHostController) {
+fun AppNavHost(
+    navController: NavHostController,
+    isNightVision: Boolean,
+    onNightVisionToggle: (Boolean) -> Unit
+) {
     NavHost(
         navController = navController,
         startDestination = Routes.Dashboard.route
@@ -33,7 +37,12 @@ fun AppNavHost(navController: NavHostController) {
 
         composable(Routes.Dashboard.route) { DashboardScreen() }
         composable(Routes.Camera.route) { CameraScreen() }
-        composable(Routes.Settings.route) { SettingsScreen() }
+        composable(Routes.Settings.route) { 
+            SettingsScreen(
+                isNightVision = isNightVision,
+                onNightVisionToggle = onNightVisionToggle
+            ) 
+        }
         composable(Routes.Gps.route) { GpsScreen() }
         composable(Routes.Logs.route) { LogsScreen(dummyLogs) }
         composable(Routes.MissionPlan.route) { MissionPlanScreen() }
