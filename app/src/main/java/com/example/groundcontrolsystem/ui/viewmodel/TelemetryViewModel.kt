@@ -9,8 +9,9 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import kotlin.math.max
 
 data class MissionLog(
@@ -86,10 +87,10 @@ class TelemetryViewModel : ViewModel() {
     private fun startLogging() {
         loggingJob?.cancel()
         loggingJob = viewModelScope.launch {
-            val formatter = DateTimeFormatter.ofPattern("HH:mm:ss")
+            val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
             while (isMissionActive) {
                 val log = MissionLog(
-                    timestamp = LocalDateTime.now().format(formatter),
+                    timestamp = sdf.format(Date()),
                     speed = speed,
                     altitude = altitude,
                     latitude = latitude,
