@@ -45,7 +45,11 @@ fun AppShell(
             HorizontalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
 
             Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                AppNavHost(navController = navController)
+                AppNavHost(
+                    navController = navController,
+                    isNightVision = isNightVision,
+                    onNightVisionToggle = onNightVisionToggle
+                )
             }
         }
     }
