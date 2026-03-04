@@ -29,12 +29,12 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import kotlinx.coroutines.delay
+import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
 @Composable
-fun CameraScreen() {
+fun CameraScreen(viewModel: TelemetryViewModel) {
     val context = LocalContext.current
     
     var hasCameraPermission by remember {
@@ -60,7 +60,7 @@ fun CameraScreen() {
     }
 
     if (hasCameraPermission) {
-        CameraContent(modifier = Modifier.fillMaxSize())
+        CameraContent(viewModel = viewModel, modifier = Modifier.fillMaxSize())
     } else {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             Text("Camera permission required")
@@ -69,7 +69,7 @@ fun CameraScreen() {
 }
 
 @Composable
-fun CameraContent(modifier: Modifier = Modifier) {
+fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
@@ -77,23 +77,6 @@ fun CameraContent(modifier: Modifier = Modifier) {
     var zoomRatio by remember { mutableFloatStateOf(1f) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
     
-    // Mock Telemetry Data
-    var speed by remember { mutableFloatStateOf(0f) }
-    var altitude by remember { mutableFloatStateOf(0f) }
-    var latitude by remember { mutableDoubleStateOf(1.3521) }
-    var longitude by remember { mutableDoubleStateOf(103.8198) }
-
-    // Simulation of Telemetry
-    LaunchedEffect(Unit) {
-        while (true) {
-            delay(500)
-            speed = (15f + (Math.random().toFloat() * 5f))
-            altitude = (120f + (Math.random().toFloat() * 10f))
-            latitude += (Math.random() - 0.5) * 0.0001
-            longitude += (Math.random() - 0.5) * 0.0001
-        }
-    }
-
     val preview = remember { Preview.Builder().build() }
     val imageCapture = remember { ImageCapture.Builder().build() }
     val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
@@ -146,11 +129,11 @@ fun CameraContent(modifier: Modifier = Modifier) {
                 .padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            HudText(label = "SPD", value = "${"%.1f".format(speed)} km/h")
-            HudText(label = "ALT", value = "${"%.1f".format(altitude)} m")
+            HudText(label = "SPD", value = "${"%.1f".format(viewModel.speed)} km/h")
+            HudText(label = "ALT", value = "${"%.1f".format(viewModel.altitude)} m")
             Spacer(modifier = Modifier.height(8.dp))
-            HudText(label = "LAT", value = "%.5f".format(latitude))
-            HudText(label = "LON", value = "%.5f".format(longitude))
+            HudText(label = "LAT", value = "%.5f".format(viewModel.latitude))
+            HudText(label = "LON", value = "%.5f".format(viewModel.longitude))
         }
 
         // Zoom Level Indicator (Top Right)
