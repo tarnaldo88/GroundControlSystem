@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -42,6 +43,8 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
     var waypoints by remember { mutableStateOf(listOf<Waypoint>()) }
     var missionObjectives by remember { mutableStateOf("") }
     var showObjectivesDialog by remember { mutableStateOf(false) }
+    
+    val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
 
     // File Picker Launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -77,6 +80,17 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
         }
     }
 
+    // Drone Marker
+    val droneMarker = remember {
+        Marker(mapView).apply {
+            title = "Drone"
+            setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
+            // Use a default icon or customize it
+            icon = context.getDrawable(android.R.drawable.ic_menu_directions)
+            icon.setTint(primaryColor)
+        }
+    }
+
     LaunchedEffect(mapView) {
         val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
             override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
@@ -89,8 +103,9 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
         mapView.overlays.add(0, eventsOverlay)
     }
 
+    // Handle Waypoints and Polyline
     LaunchedEffect(waypoints) {
-        mapView.overlays.removeAll { it is Marker || it is Polyline }
+        mapView.overlays.removeAll { it is Marker && it != droneMarker || it is Polyline }
         val points = waypoints.map { it.location }
         polyline.setPoints(points)
         mapView.overlays.add(polyline)
@@ -102,6 +117,25 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             mapView.overlays.add(marker)
         }
+        
+        // Ensure drone marker stays on top
+        if (!mapView.overlays.contains(droneMarker)) {
+            mapView.overlays.add(droneMarker)
+        }
+        
+        mapView.invalidate()
+    }
+
+    // Update Drone Position Live
+    LaunchedEffect(viewModel.latitude, viewModel.longitude) {
+        val newPos = GeoPoint(viewModel.latitude, viewModel.longitude)
+        droneMarker.position = newPos
+        
+        // Optionally center map on drone if mission is active
+        if (viewModel.isMissionActive) {
+            mapView.controller.animateTo(newPos)
+        }
+
         mapView.invalidate()
     }
 
