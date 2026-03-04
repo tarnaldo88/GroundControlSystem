@@ -10,7 +10,9 @@ import androidx.camera.core.Preview
 import androidx.camera.core.ZoomState
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CameraAlt
@@ -19,12 +21,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import kotlinx.coroutines.delay
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
 
@@ -72,13 +77,29 @@ fun CameraContent(modifier: Modifier = Modifier) {
     var zoomRatio by remember { mutableFloatStateOf(1f) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
     
+    // Mock Telemetry Data
+    var speed by remember { mutableFloatStateOf(0f) }
+    var altitude by remember { mutableFloatStateOf(0f) }
+    var latitude by remember { mutableDoubleStateOf(1.3521) }
+    var longitude by remember { mutableDoubleStateOf(103.8198) }
+
+    // Simulation of Telemetry
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(500)
+            speed = (15f + (Math.random().toFloat() * 5f))
+            altitude = (120f + (Math.random().toFloat() * 10f))
+            latitude += (Math.random() - 0.5) * 0.0001
+            longitude += (Math.random() - 0.5) * 0.0001
+        }
+    }
+
     val preview = remember { Preview.Builder().build() }
     val imageCapture = remember { ImageCapture.Builder().build() }
     val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
 
     val previewView = remember { PreviewView(context) }
 
-    // Observe ZoomState from the camera
     DisposableEffect(camera) {
         val observer = androidx.lifecycle.Observer<ZoomState> { state ->
             zoomRatio = state.zoomRatio
@@ -116,6 +137,38 @@ fun CameraContent(modifier: Modifier = Modifier) {
             modifier = Modifier.fillMaxSize()
         )
 
+        // HUD Overlay - Telemetry Data (Top Left)
+        Column(
+            modifier = Modifier
+                .padding(16.dp)
+                .align(Alignment.TopStart)
+                .background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp))
+                .padding(12.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp)
+        ) {
+            HudText(label = "SPD", value = "${"%.1f".format(speed)} km/h")
+            HudText(label = "ALT", value = "${"%.1f".format(altitude)} m")
+            Spacer(modifier = Modifier.height(8.dp))
+            HudText(label = "LAT", value = "%.5f".format(latitude))
+            HudText(label = "LON", value = "%.5f".format(longitude))
+        }
+
+        // Zoom Level Indicator (Top Right)
+        Surface(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp),
+            color = Color.Black.copy(alpha = 0.5f),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Text(
+                text = "Zoom: ${"%.1f".format(zoomRatio)}x",
+                modifier = Modifier.padding(8.dp),
+                style = MaterialTheme.typography.labelLarge,
+                color = Color.White
+            )
+        }
+
         // Controls at the bottom
         Surface(
             modifier = Modifier
@@ -132,7 +185,6 @@ fun CameraContent(modifier: Modifier = Modifier) {
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Zoom Out
                 FilledTonalIconButton(
                     onClick = {
                         val currentZoom = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: zoomRatio
@@ -142,27 +194,17 @@ fun CameraContent(modifier: Modifier = Modifier) {
                     },
                     modifier = Modifier.size(56.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Remove,
-                        contentDescription = "Zoom Out",
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Icon(Icons.Default.Remove, contentDescription = "Zoom Out")
                 }
 
-                // Shutter Button
                 FloatingActionButton(
-                    onClick = { /* TODO: Implement capture logic */ },
+                    onClick = { /* Capture Logic */ },
                     containerColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(72.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.CameraAlt,
-                        contentDescription = "Take Picture",
-                        modifier = Modifier.size(36.dp)
-                    )
+                    Icon(Icons.Default.CameraAlt, contentDescription = "Take Picture", modifier = Modifier.size(36.dp))
                 }
 
-                // Zoom In
                 FilledTonalIconButton(
                     onClick = {
                         val currentZoom = camera?.cameraInfo?.zoomState?.value?.zoomRatio ?: zoomRatio
@@ -172,37 +214,32 @@ fun CameraContent(modifier: Modifier = Modifier) {
                     },
                     modifier = Modifier.size(56.dp)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "Zoom In",
-                        modifier = Modifier.size(32.dp)
-                    )
+                    Icon(Icons.Default.Add, contentDescription = "Zoom In")
                 }
 
-                // IR Toggle
                 FilledTonalButton(
-                    onClick = { /* TODO: Implement IR toggle logic */ },
+                    onClick = { /* IR Toggle */ },
                     modifier = Modifier.height(56.dp)
                 ) {
                     Text(text = "IR")
                 }
             }
         }
-        
-        // Zoom Level Indicator
-        Surface(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(16.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
-            shape = MaterialTheme.shapes.small
-        ) {
-            Text(
-                text = "Zoom: ${"%.1f".format(zoomRatio)}x",
-                modifier = Modifier.padding(8.dp),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    }
+}
+
+@Composable
+fun HudText(label: String, value: String) {
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = "$label:",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.7f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.White
+        )
     }
 }
