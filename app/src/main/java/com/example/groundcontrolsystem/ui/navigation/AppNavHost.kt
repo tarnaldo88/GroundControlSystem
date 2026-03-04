@@ -13,12 +13,14 @@ import com.example.groundcontrolsystem.ui.screens.logs.LogEntry
 import com.example.groundcontrolsystem.ui.screens.logs.LogLevel
 import com.example.groundcontrolsystem.ui.screens.settings.SettingsScreen
 import com.example.groundcontrolsystem.ui.screens.missionplan.MissionPlanScreen
+import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 
 @Composable
 fun AppNavHost(
     navController: NavHostController,
     isNightVision: Boolean,
-    onNightVisionToggle: (Boolean) -> Unit
+    onNightVisionToggle: (Boolean) -> Unit,
+    telemetryViewModel: TelemetryViewModel
 ) {
     NavHost(
         navController = navController,
@@ -35,8 +37,12 @@ fun AppNavHost(
             LogEntry("10:10:00", LogLevel.ERROR, "Obstacle avoidance sensor timeout"),
         )
 
-        composable(Routes.Dashboard.route) { DashboardScreen() }
-        composable(Routes.Camera.route) { CameraScreen() }
+        composable(Routes.Dashboard.route) { 
+            DashboardScreen(telemetryViewModel) 
+        }
+        composable(Routes.Camera.route) { 
+            CameraScreen(telemetryViewModel) 
+        }
         composable(Routes.Settings.route) { 
             SettingsScreen(
                 isNightVision = isNightVision,
@@ -45,6 +51,8 @@ fun AppNavHost(
         }
         composable(Routes.Gps.route) { GpsScreen() }
         composable(Routes.Logs.route) { LogsScreen(dummyLogs) }
-        composable(Routes.MissionPlan.route) { MissionPlanScreen() }
+        composable(Routes.MissionPlan.route) { 
+            MissionPlanScreen(telemetryViewModel) 
+        }
     }
 }
