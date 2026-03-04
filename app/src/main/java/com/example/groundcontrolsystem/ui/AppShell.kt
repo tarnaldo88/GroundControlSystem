@@ -1,6 +1,5 @@
 package com.example.groundcontrolsystem.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -17,10 +16,12 @@ import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
 import com.example.groundcontrolsystem.ui.navigation.AppNavHost
 import com.example.groundcontrolsystem.ui.components.LeftNavRail
 import com.example.groundcontrolsystem.ui.components.TopCommandBar
+import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 
 @Composable
 fun AppShell(
@@ -28,6 +29,7 @@ fun AppShell(
     onNightVisionToggle: (Boolean) -> Unit = {}
 ) {
     val navController = rememberNavController()
+    val telemetryViewModel: TelemetryViewModel = viewModel()
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -46,7 +48,7 @@ fun AppShell(
             Column(modifier = Modifier.fillMaxSize()) {
                 TopCommandBar(
                     modifier = Modifier.fillMaxWidth(),
-                    statusText = "TODO will change to method that returns whether connected or not"
+                    statusText = if (telemetryViewModel.isConnected) "SYSTEM CONNECTED" else "DISCONNECTED"
                 )
 
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
@@ -55,7 +57,8 @@ fun AppShell(
                     AppNavHost(
                         navController = navController,
                         isNightVision = isNightVision,
-                        onNightVisionToggle = onNightVisionToggle
+                        onNightVisionToggle = onNightVisionToggle,
+                        telemetryViewModel = telemetryViewModel
                     )
                 }
             }
