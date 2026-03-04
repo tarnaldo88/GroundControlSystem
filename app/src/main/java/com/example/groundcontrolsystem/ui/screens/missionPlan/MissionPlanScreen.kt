@@ -16,6 +16,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 import org.osmdroid.config.Configuration
 import org.osmdroid.events.MapEventsReceiver
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
@@ -34,7 +35,7 @@ data class Waypoint(
 )
 
 @Composable
-fun MissionPlanScreen() {
+fun MissionPlanScreen(viewModel: TelemetryViewModel) {
     val context = LocalContext.current
     Configuration.getInstance().userAgentValue = context.packageName
 
@@ -55,7 +56,6 @@ fun MissionPlanScreen() {
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
-                    // Handle error (e.g., show a snackbar)
                 }
             }
         }
@@ -77,7 +77,6 @@ fun MissionPlanScreen() {
         }
     }
 
-    // Handle map clicks to add waypoints
     LaunchedEffect(mapView) {
         val eventsOverlay = MapEventsOverlay(object : MapEventsReceiver {
             override fun singleTapConfirmedHelper(p: GeoPoint): Boolean {
@@ -90,10 +89,8 @@ fun MissionPlanScreen() {
         mapView.overlays.add(0, eventsOverlay)
     }
 
-    // Update map markers and lines when waypoints change
     LaunchedEffect(waypoints) {
         mapView.overlays.removeAll { it is Marker || it is Polyline }
-        
         val points = waypoints.map { it.location }
         polyline.setPoints(points)
         mapView.overlays.add(polyline)
@@ -118,8 +115,7 @@ fun MissionPlanScreen() {
                     value = tempObjectives,
                     onValueChange = { tempObjectives = it },
                     label = { Text("Describe the mission") },
-                    modifier = Modifier.fillMaxWidth().height(150.dp),
-                    placeholder = { Text("e.g. Survey the north perimeter and check for leaks.") }
+                    modifier = Modifier.fillMaxWidth().height(150.dp)
                 )
             },
             confirmButton = {
@@ -139,17 +135,11 @@ fun MissionPlanScreen() {
     }
 
     Row(modifier = Modifier.fillMaxSize()) {
-        // Map Section (Left side)
         Surface(
-            modifier = Modifier
-                .weight(2f)
-                .fillMaxHeight()
-                .clipToBounds(),
+            modifier = Modifier.weight(2f).fillMaxHeight().clipToBounds(),
             tonalElevation = 2.dp
         ) {
             AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
-            
-            // Map Overlay Controls
             Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
                 SmallFloatingActionButton(
                     onClick = { waypoints = emptyList() },
@@ -163,94 +153,48 @@ fun MissionPlanScreen() {
 
         VerticalDivider()
 
-        // Objectives/Waypoints List (Right side)
         Column(
-            modifier = Modifier
-                .weight(1f)
-                .fillMaxHeight()
-                .padding(16.dp),
+            modifier = Modifier.weight(1f).fillMaxHeight().padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Mission Plan", style = MaterialTheme.typography.titleLarge)
-                Row {
-                    IconButton(onClick = { filePickerLauncher.launch(arrayOf("text/plain")) }) {
-                        Icon(Icons.Default.FileUpload, contentDescription = "Upload Objectives")
-                    }
-                    IconButton(onClick = { showObjectivesDialog = true }) {
-                        Icon(Icons.Default.EditNote, contentDescription = "Edit Objectives")
-                    }
-                }
-            }
-
-            if (missionObjectives.isNotEmpty()) {
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(
-                        containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.3f)
-                    )
-                ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = "Objectives:",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                            IconButton(
-                                onClick = { missionObjectives = "" },
-                                modifier = Modifier.size(24.dp)
-                            ) {
-                                Icon(
-                                    Icons.Default.Clear,
-                                    contentDescription = "Clear Objectives",
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                        Text(
-                            text = missionObjectives,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-                }
-            }
-
+            Text("Mission Plan", style = MaterialTheme.typography.titleLarge)
+            
             Text("Waypoints", style = MaterialTheme.typography.titleSmall)
             
             if (waypoints.isEmpty()) {
                 Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                    Text("Tap on map to add waypoints", style = MaterialTheme.typography.bodyMedium)
+                    Text("Tap on map to add waypoints")
                 }
             } else {
-                LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
+                LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(waypoints) { wp ->
-                        WaypointItem(wp) {
-                            waypoints = waypoints.filter { it.id != wp.id }
-                        }
+                        WaypointItem(wp) { waypoints = waypoints.filter { it.id != wp.id } }
                     }
                 }
             }
 
             Button(
-                onClick = { /* TODO: Launch Mission */ },
+                onClick = { viewModel.startMission() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = waypoints.isNotEmpty() || missionObjectives.isNotEmpty()
+                enabled = (waypoints.isNotEmpty() || missionObjectives.isNotEmpty()) && viewModel.isConnected && !viewModel.isMissionActive
             ) {
-                Icon(Icons.Default.PlayArrow, contentDescription = null)
-                Spacer(Modifier.width(8.dp))
-                Text("Start Mission")
+                if (viewModel.isMissionActive) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Mission In Progress")
+                } else {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Start Mission")
+                }
+            }
+            
+            if (!viewModel.isConnected) {
+                Text(
+                    "System disconnected. Connect in Dashboard to start.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
             }
         }
     }
@@ -258,21 +202,11 @@ fun MissionPlanScreen() {
 
 @Composable
 fun WaypointItem(waypoint: Waypoint, onDelete: () -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-    ) {
-        Row(
-            modifier = Modifier.padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
                 Text("WP ${waypoint.id}", style = MaterialTheme.typography.labelLarge)
-                Text(
-                    "Lat: ${"%.4f".format(waypoint.location.latitude)}\nLon: ${"%.4f".format(waypoint.location.longitude)}",
-                    style = MaterialTheme.typography.bodySmall
-                )
+                Text("Lat: ${"%.4f".format(waypoint.location.latitude)}\nLon: ${"%.4f".format(waypoint.location.longitude)}", style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = onDelete) {
                 Icon(Icons.Default.Close, contentDescription = "Delete", tint = MaterialTheme.colorScheme.error)
