@@ -10,6 +10,8 @@ import androidx.camera.core.Preview
 import androidx.camera.core.ZoomState
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -23,15 +25,24 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 @Composable
 fun CameraScreen(viewModel: TelemetryViewModel) {
@@ -119,6 +130,28 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
             factory = { previewView },
             modifier = Modifier.fillMaxSize()
         )
+
+        // --- NEW GAUGES ---
+
+        // 1. Altitude Ladder (Right Side)
+        AltitudeLadder(
+            altitude = viewModel.altitude,
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .width(80.dp)
+                .fillMaxHeight(0.6f)
+                .padding(end = 16.dp)
+        )
+
+        // 2. Compass / Heading (Top Center)
+        CompassGauge(
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(top = 16.dp)
+                .size(120.dp)
+        )
+
+        // --- EXISTING HUD ---
 
         // HUD Overlay - Telemetry Data (Top Left)
         Column(
@@ -208,6 +241,121 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
                 }
             }
         }
+    }
+}
+
+@Composable
+fun AltitudeLadder(altitude: Float, modifier: Modifier = Modifier) {
+    val animatedAlt by animateFloatAsState(targetValue = altitude, label = "altitude")
+    
+    Canvas(modifier = modifier) {
+        val width = size.width
+        val height = size.height
+        val centerH = height / 2
+
+        // Background
+        drawRoundRect(
+            color = Color.Black.copy(alpha = 0.3f),
+            size = size,
+            cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f)
+        )
+
+        // Draw scale
+        val scaleSpacing = 20f
+        val startAlt = (animatedAlt.toInt() / 10) * 10 - 50
+        
+        for (i in 0..100 step 10) {
+            val currentLabelAlt = startAlt + i
+            if (currentLabelAlt < 0) continue
+            
+            val offset = (currentLabelAlt - animatedAlt) * (height / 100f)
+            val yPos = centerH - offset
+
+            if (yPos in 0f..height) {
+                // Main tick
+                drawLine(
+                    color = Color.White,
+                    start = Offset(0f, yPos),
+                    end = Offset(width * 0.3f, yPos),
+                    strokeWidth = 2f
+                )
+                
+                // Text
+                drawContext.canvas.nativeCanvas.drawText(
+                    currentLabelAlt.toString(),
+                    width * 0.4f,
+                    yPos + 10f,
+                    android.graphics.Paint().apply {
+                        color = android.graphics.Color.WHITE
+                        textSize = 30f
+                        isFakeBoldText = true
+                    }
+                )
+            }
+        }
+
+        // Current Alt Indicator Arrow
+        val path = Path().apply {
+            moveTo(0f, centerH - 15f)
+            lineTo(20f, centerH)
+            lineTo(0f, centerH + 15f)
+            close()
+        }
+        drawPath(path, Color.Cyan)
+        drawLine(Color.Cyan, Offset(0f, centerH), Offset(width, centerH), strokeWidth = 3f)
+    }
+}
+
+@Composable
+fun CompassGauge(modifier: Modifier = Modifier) {
+    Canvas(modifier = modifier) {
+        val radius = size.minDimension / 2
+        val center = Offset(size.width / 2, size.height / 2)
+
+        // Ring
+        drawCircle(
+            color = Color.White.copy(alpha = 0.5f),
+            radius = radius,
+            center = center,
+            style = Stroke(width = 2f)
+        )
+
+        // Compass Ticks
+        for (angle in 0 until 360 step 30) {
+            rotate(angle.toFloat()) {
+                drawLine(
+                    color = Color.White,
+                    start = Offset(center.x, center.y - radius),
+                    end = Offset(center.x, center.y - radius + 15f),
+                    strokeWidth = 2f
+                )
+                
+                val label = when (angle) {
+                    0 -> "N"
+                    90 -> "E"
+                    180 -> "S"
+                    270 -> "W"
+                    else -> ""
+                }
+                
+                if (label.isNotEmpty()) {
+                    drawContext.canvas.nativeCanvas.drawText(
+                        label,
+                        center.x - 10f,
+                        center.y - radius + 40f,
+                        android.graphics.Paint().apply {
+                            color = android.graphics.Color.WHITE
+                            textSize = 35f
+                            isFakeBoldText = true
+                        }
+                    )
+                }
+            }
+        }
+
+        // Center Indicator
+        drawCircle(Color.Cyan, 5f, center)
+        drawLine(Color.Cyan, center, Offset(center.x, center.y - radius * 0.8f), strokeWidth = 4f)
     }
 }
 
