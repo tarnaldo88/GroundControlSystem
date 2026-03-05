@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.osmdroid.tileprovider.tilesource.ITileSource
+import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -50,6 +52,9 @@ class TelemetryViewModel : ViewModel() {
     var currentWaypointIndex by mutableStateOf(-1)
     var activeWaypoints = mutableStateListOf<GeoPoint>()
     
+    // Map Tile Source Shared State
+    var currentTileSource: ITileSource by mutableStateOf(TileSourceFactory.MAPNIK)
+
     val missionLogs = mutableStateListOf<MissionLog>()
     val systemLogs = mutableStateListOf<SystemLog>()
     
@@ -118,6 +123,10 @@ class TelemetryViewModel : ViewModel() {
         }
     }
 
+    fun setTileSource(source: ITileSource) {
+        currentTileSource = source
+    }
+
     private fun addLog(level: LogLevel, message: String) {
         systemLogs.add(0, SystemLog(sdf.format(Date()), level, message))
     }
@@ -160,7 +169,6 @@ class TelemetryViewModel : ViewModel() {
                 )
                 missionLogs.add(log)
                 
-                // Also add a summary to system logs for visibility
                 addLog(LogLevel.DEBUG, "Telemetry Sync: Alt ${"%.1f".format(altitude)}m, Spd ${"%.1f".format(speed)}km/h")
                 
                 if (missionLogs.size >= 100) stopMission()
