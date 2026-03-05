@@ -43,10 +43,10 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
     var waypoints by remember { mutableStateOf(listOf<Waypoint>()) }
     var missionObjectives by remember { mutableStateOf("") }
     var showObjectivesDialog by remember { mutableStateOf(false) }
+    var showLayerMenu by remember { mutableStateOf(false) }
     
     val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
 
-    // File Picker Launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument(),
         onResult = { uri: Uri? ->
@@ -66,11 +66,14 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
     
     val mapView = remember {
         MapView(context).apply {
-            setTileSource(TileSourceFactory.MAPNIK)
             setMultiTouchControls(true)
             controller.setZoom(15.0)
             controller.setCenter(GeoPoint(1.35, 103.87))
         }
+    }
+
+    LaunchedEffect(viewModel.currentTileSource) {
+        mapView.setTileSource(viewModel.currentTileSource)
     }
 
     val polyline = remember {
@@ -80,12 +83,10 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
         }
     }
 
-    // Drone Marker
     val droneMarker = remember {
         Marker(mapView).apply {
             title = "Drone"
             setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_CENTER)
-            // Use a default icon or customize it
             icon = context.getDrawable(android.R.drawable.ic_menu_directions)
             icon.setTint(primaryColor)
         }
@@ -97,13 +98,11 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
                 waypoints = waypoints + Waypoint(waypoints.size + 1, p)
                 return true
             }
-
             override fun longPressHelper(p: GeoPoint): Boolean = false
         })
         mapView.overlays.add(0, eventsOverlay)
     }
 
-    // Handle Waypoints and Polyline
     LaunchedEffect(waypoints) {
         mapView.overlays.removeAll { it is Marker && it != droneMarker || it is Polyline }
         val points = waypoints.map { it.location }
@@ -117,25 +116,16 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
             marker.setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
             mapView.overlays.add(marker)
         }
-        
-        // Ensure drone marker stays on top
-        if (!mapView.overlays.contains(droneMarker)) {
-            mapView.overlays.add(droneMarker)
-        }
-        
+        if (!mapView.overlays.contains(droneMarker)) mapView.overlays.add(droneMarker)
         mapView.invalidate()
     }
 
-    // Update Drone Position Live
     LaunchedEffect(viewModel.latitude, viewModel.longitude) {
         val newPos = GeoPoint(viewModel.latitude, viewModel.longitude)
         droneMarker.position = newPos
-        
-        // Optionally center map on drone if mission is active
         if (viewModel.isMissionActive) {
             mapView.controller.animateTo(newPos)
         }
-
         mapView.invalidate()
     }
 
@@ -156,14 +146,10 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
                 TextButton(onClick = {
                     missionObjectives = tempObjectives
                     showObjectivesDialog = false
-                }) {
-                    Text("Save")
-                }
+                }) { Text("Save") }
             },
             dismissButton = {
-                TextButton(onClick = { showObjectivesDialog = false }) {
-                    Text("Cancel")
-                }
+                TextButton(onClick = { showObjectivesDialog = false }) { Text("Cancel") }
             }
         )
     }
@@ -174,7 +160,24 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
             tonalElevation = 2.dp
         ) {
             AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
+            
+            // Map Overlays
             Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                // Layer Button
+                Box(modifier = Modifier.align(Alignment.TopStart)) {
+                    SmallFloatingActionButton(
+                        onClick = { showLayerMenu = true },
+                        containerColor = MaterialTheme.colorScheme.surface
+                    ) {
+                        Icon(Icons.Default.Layers, contentDescription = "Layers")
+                    }
+                    DropdownMenu(expanded = showLayerMenu, onDismissRequest = { showLayerMenu = false }) {
+                        DropdownMenuItem(text = { Text("Standard") }, onClick = { viewModel.setTileSource(TileSourceFactory.MAPNIK); showLayerMenu = false })
+                        DropdownMenuItem(text = { Text("Topographic") }, onClick = { viewModel.setTileSource(TileSourceFactory.OpenTopo); showLayerMenu = false })
+                        DropdownMenuItem(text = { Text("Public Transport") }, onClick = { viewModel.setTileSource(TileSourceFactory.PUBLIC_TRANSPORT); showLayerMenu = false })
+                    }
+                }
+
                 SmallFloatingActionButton(
                     onClick = { waypoints = emptyList() },
                     modifier = Modifier.align(Alignment.TopEnd),
@@ -202,15 +205,16 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
             } else {
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(waypoints) { wp ->
-                        WaypointItem(wp) { waypoints = waypoints.filter { it.id != wp.id } }
+                        val isActive = viewModel.currentWaypointIndex == waypoints.indexOf(wp)
+                        WaypointItem(wp, isActive) { waypoints = waypoints.filter { it.id != wp.id } }
                     }
                 }
             }
 
             Button(
-                onClick = { viewModel.startMission() },
+                onClick = { viewModel.startMission(waypoints.map { it.location }) },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = (waypoints.isNotEmpty() || missionObjectives.isNotEmpty()) && viewModel.isConnected && !viewModel.isMissionActive
+                enabled = waypoints.isNotEmpty() && viewModel.isConnected && !viewModel.isMissionActive
             ) {
                 if (viewModel.isMissionActive) {
                     CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary, strokeWidth = 2.dp)
@@ -222,24 +226,27 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
                     Text("Start Mission")
                 }
             }
-            
-            if (!viewModel.isConnected) {
-                Text(
-                    "System disconnected. Connect in Dashboard to start.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-            }
         }
     }
 }
 
 @Composable
-fun WaypointItem(waypoint: Waypoint, onDelete: () -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+fun WaypointItem(waypoint: Waypoint, isActive: Boolean, onDelete: () -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+        )
+    ) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
             Column {
-                Text("WP ${waypoint.id}", style = MaterialTheme.typography.labelLarge)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("WP ${waypoint.id}", style = MaterialTheme.typography.labelLarge)
+                    if (isActive) {
+                        Spacer(Modifier.width(8.dp))
+                        Text("ACTIVE", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                    }
+                }
                 Text("Lat: ${"%.4f".format(waypoint.location.latitude)}\nLon: ${"%.4f".format(waypoint.location.longitude)}", style = MaterialTheme.typography.bodySmall)
             }
             IconButton(onClick = onDelete) {
