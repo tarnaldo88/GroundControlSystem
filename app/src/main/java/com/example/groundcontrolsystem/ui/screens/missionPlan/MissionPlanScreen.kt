@@ -44,6 +44,7 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
     var missionObjectives by remember { mutableStateOf("") }
     var showObjectivesDialog by remember { mutableStateOf(false) }
     var showLayerMenu by remember { mutableStateOf(false) }
+    var showChecklistDialog by remember { mutableStateOf(false) }
     
     val primaryColor = MaterialTheme.colorScheme.primary.toArgb()
 
@@ -154,6 +155,61 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
         )
     }
 
+    if (showChecklistDialog) {
+        var batteryChecked by remember { mutableStateOf(viewModel.batteryLevel > 0.5f) }
+        var gpsChecked by remember { mutableStateOf(viewModel.isConnected && viewModel.signalStrength > 0.5f) }
+        var nfZChecked by remember { mutableStateOf(false) }
+        var controllerChecked by remember { mutableStateOf(viewModel.isConnected) }
+
+        AlertDialog(
+            onDismissRequest = { showChecklistDialog = false },
+            title = { Text("Pre-Flight Checklist") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    ChecklistItem(
+                        label = "Battery > 50% (${(viewModel.batteryLevel * 100).toInt()}%)",
+                        checked = batteryChecked,
+                        onCheckedChange = { batteryChecked = it },
+                        enabled = viewModel.batteryLevel > 0.5f
+                    )
+                    ChecklistItem(
+                        label = "GPS Signal Lock (${(viewModel.signalStrength * 100).toInt()}%)",
+                        checked = gpsChecked,
+                        onCheckedChange = { gpsChecked = it },
+                        enabled = viewModel.isConnected && viewModel.signalStrength > 0.5f
+                    )
+                    ChecklistItem(
+                        label = "No-Fly Zone Checked",
+                        checked = nfZChecked,
+                        onCheckedChange = { nfZChecked = it }
+                    )
+                    ChecklistItem(
+                        label = "Controller Connected",
+                        checked = controllerChecked,
+                        onCheckedChange = { controllerChecked = it },
+                        enabled = viewModel.isConnected
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showChecklistDialog = false
+                        viewModel.startMission(waypoints.map { it.location })
+                    },
+                    enabled = batteryChecked && gpsChecked && nfZChecked && controllerChecked
+                ) {
+                    Text("Launch Mission")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showChecklistDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
+
     Row(modifier = Modifier.fillMaxSize()) {
         Surface(
             modifier = Modifier.weight(2f).fillMaxHeight().clipToBounds(),
@@ -161,9 +217,7 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
         ) {
             AndroidView(factory = { mapView }, modifier = Modifier.fillMaxSize())
             
-            // Map Overlays
             Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                // Layer Button
                 Box(modifier = Modifier.align(Alignment.TopStart)) {
                     SmallFloatingActionButton(
                         onClick = { showLayerMenu = true },
@@ -212,7 +266,7 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
             }
 
             Button(
-                onClick = { viewModel.startMission(waypoints.map { it.location }) },
+                onClick = { showChecklistDialog = true },
                 modifier = Modifier.fillMaxWidth(),
                 enabled = waypoints.isNotEmpty() && viewModel.isConnected && !viewModel.isMissionActive
             ) {
@@ -227,6 +281,31 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
                 }
             }
         }
+    }
+}
+
+@Composable
+fun ChecklistItem(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    enabled: Boolean = true
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Checkbox(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            enabled = enabled
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (enabled) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.error
+        )
     }
 }
 
