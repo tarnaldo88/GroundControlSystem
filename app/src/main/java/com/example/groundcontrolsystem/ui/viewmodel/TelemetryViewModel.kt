@@ -33,6 +33,7 @@ class TelemetryViewModel : ViewModel() {
     var longitude by mutableStateOf(103.8198)
     
     var isMissionActive by mutableStateOf(false)
+    var isRthActive by mutableStateOf(false)
     
     // Mission logs stored as a list
     val missionLogs = mutableStateListOf<MissionLog>()
@@ -42,19 +43,39 @@ class TelemetryViewModel : ViewModel() {
         viewModelScope.launch {
             while (true) {
                 if (isConnected) {
-                    // Battery depletion (5 min)
-                    batteryLevel = max(0f, batteryLevel - (1f / 300f))
+                    // Battery depletion (increased rate for demo: 2.5 min to 0 to reach 20% faster)
+                    batteryLevel = max(0f, batteryLevel - (1f / 150f))
                     // Signal fluctuation
                     signalStrength = (0.7f + (Math.random().toFloat() * 0.3f)).coerceIn(0f, 1f)
                     
+                    // Smart Battery Logic
+                    if (batteryLevel < 0.2f && isMissionActive && !isRthActive) {
+                        isRthActive = true
+                    }
+
                     if (isMissionActive) {
-                        // Mission flight dynamics
-                        speed = (speed + (25f - speed) * 0.1f).coerceIn(0f, 30f)
-                        altitude = (altitude + (150f - altitude) * 0.1f).coerceIn(0f, 200f)
-                        
-                        // Drift position
-                        latitude += (Math.random() - 0.4) * 0.0002
-                        longitude += (Math.random() - 0.4) * 0.0002
+                        if (isRthActive) {
+                            // RTH dynamics: return to home coordinates (1.3521, 103.8198)
+                            speed = (speed + (35f - speed) * 0.1f).coerceIn(0f, 40f) // Flying back fast
+                            altitude = (altitude + (50f - altitude) * 0.05f).coerceIn(0f, 200f) // Descending slowly
+                            
+                            // Move towards home
+                            latitude += (1.3521 - latitude) * 0.05
+                            longitude += (103.8198 - longitude) * 0.05
+                            
+                            // Stop mission if reached home
+                            if (Math.abs(latitude - 1.3521) < 0.0001 && Math.abs(longitude - 103.8198) < 0.0001) {
+                                stopMission()
+                            }
+                        } else {
+                            // Normal Mission flight dynamics
+                            speed = (speed + (25f - speed) * 0.1f).coerceIn(0f, 30f)
+                            altitude = (altitude + (150f - altitude) * 0.1f).coerceIn(0f, 200f)
+                            
+                            // Drift position
+                            latitude += (Math.random() - 0.4) * 0.0002
+                            longitude += (Math.random() - 0.4) * 0.0002
+                        }
                     } else {
                         // Idle state / Returning to zero
                         speed = max(0f, speed - 1f)
@@ -79,6 +100,7 @@ class TelemetryViewModel : ViewModel() {
     fun startMission() {
         if (isConnected && !isMissionActive) {
             isMissionActive = true
+            isRthActive = false
             missionLogs.clear()
             startLogging()
         }
@@ -98,8 +120,8 @@ class TelemetryViewModel : ViewModel() {
                 )
                 missionLogs.add(log)
                 
-                // End mission automatically after ~1 minute (12 logs * 5s = 60s)
-                if (missionLogs.size >= 12) {
+                // End mission automatically if logs get too many, or just keep logging
+                if (missionLogs.size >= 100) {
                     stopMission()
                 }
                 
@@ -110,6 +132,7 @@ class TelemetryViewModel : ViewModel() {
 
     fun stopMission() {
         isMissionActive = false
+        isRthActive = false
         loggingJob?.cancel()
     }
 
