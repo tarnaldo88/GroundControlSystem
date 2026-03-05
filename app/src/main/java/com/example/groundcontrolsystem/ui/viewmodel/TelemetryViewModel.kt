@@ -16,6 +16,16 @@ import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 
+enum class LogLevel {
+    INFO, WARNING, ERROR, DEBUG
+}
+
+data class SystemLog(
+    val timestamp: String,
+    val level: LogLevel,
+    val message: String
+)
+
 data class MissionLog(
     val timestamp: String,
     val speed: Float,
@@ -37,71 +47,65 @@ class TelemetryViewModel : ViewModel() {
     var isMissionActive by mutableStateOf(false)
     var isRthActive by mutableStateOf(false)
     
-    // Waypoint tracking
     var currentWaypointIndex by mutableStateOf(-1)
     var activeWaypoints = mutableStateListOf<GeoPoint>()
     
-    // Mission logs stored as a list
     val missionLogs = mutableStateListOf<MissionLog>()
+    val systemLogs = mutableStateListOf<SystemLog>()
+    
     private var loggingJob: Job? = null
+    private val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     init {
+        addLog(LogLevel.INFO, "System initialized and ready")
+        
         viewModelScope.launch {
             while (true) {
                 if (isConnected) {
-                    // Battery depletion
                     batteryLevel = max(0f, batteryLevel - (1f / 150f))
-                    // Signal fluctuation
                     signalStrength = (0.7f + (Math.random().toFloat() * 0.3f)).coerceIn(0f, 1f)
                     
-                    // Smart Battery Logic
                     if (batteryLevel < 0.2f && isMissionActive && !isRthActive) {
                         isRthActive = true
+                        addLog(LogLevel.WARNING, "Low battery detected! Emergency RTH initiated")
                     }
 
                     if (isMissionActive) {
                         if (isRthActive) {
-                            // RTH dynamics
                             speed = (speed + (35f - speed) * 0.1f).coerceIn(0f, 40f)
                             altitude = (altitude + (50f - altitude) * 0.05f).coerceIn(0f, 200f)
                             latitude += (1.3521 - latitude) * 0.05
                             longitude += (103.8198 - longitude) * 0.05
                             
                             if (abs(latitude - 1.3521) < 0.0001 && abs(longitude - 103.8198) < 0.0001) {
+                                addLog(LogLevel.INFO, "RTH Complete. Drone landed at home.")
                                 stopMission()
                             }
                         } else {
-                            // Normal Mission flight dynamics
                             speed = (speed + (25f - speed) * 0.1f).coerceIn(0f, 30f)
                             altitude = (altitude + (150f - altitude) * 0.1f).coerceIn(0f, 200f)
                             
-                            // Fly towards the current waypoint if available
                             if (activeWaypoints.isNotEmpty() && currentWaypointIndex != -1) {
                                 val target = activeWaypoints[currentWaypointIndex]
                                 val latDiff = target.latitude - latitude
                                 val lonDiff = target.longitude - longitude
-                                
-                                // Move towards target
                                 latitude += latDiff * 0.05
                                 longitude += lonDiff * 0.05
                                 
-                                // Check if reached (within ~10 meters threshold in coordinate space)
                                 if (abs(latDiff) < 0.0005 && abs(lonDiff) < 0.0005) {
+                                    addLog(LogLevel.DEBUG, "Reached Waypoint ${currentWaypointIndex + 1}")
                                     if (currentWaypointIndex < activeWaypoints.size - 1) {
                                         currentWaypointIndex++
                                     } else {
-                                        // Reached last waypoint, hover or return
                                         speed = max(0f, speed - 2f)
                                     }
                                 }
                             } else {
-                                // Default drift if no waypoints
                                 latitude += (Math.random() - 0.4) * 0.0002
                                 longitude += (Math.random() - 0.4) * 0.0002
                             }
                         }
                     } else {
-                        // Idle state
                         speed = max(0f, speed - 1f)
                         altitude = max(0f, altitude - 2f)
                     }
@@ -114,9 +118,16 @@ class TelemetryViewModel : ViewModel() {
         }
     }
 
+    private fun addLog(level: LogLevel, message: String) {
+        systemLogs.add(0, SystemLog(sdf.format(Date()), level, message))
+    }
+
     fun toggleConnection() {
         isConnected = !isConnected
-        if (!isConnected) {
+        if (isConnected) {
+            addLog(LogLevel.INFO, "GCS Connected to Drone")
+        } else {
+            addLog(LogLevel.ERROR, "Link Lost. Connection terminated.")
             stopMission()
         }
     }
@@ -130,6 +141,8 @@ class TelemetryViewModel : ViewModel() {
             isMissionActive = true
             isRthActive = false
             missionLogs.clear()
+            
+            addLog(LogLevel.INFO, "Mission Started with ${waypoints.size} waypoints")
             startLogging()
         }
     }
@@ -137,7 +150,6 @@ class TelemetryViewModel : ViewModel() {
     private fun startLogging() {
         loggingJob?.cancel()
         loggingJob = viewModelScope.launch {
-            val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
             while (isMissionActive) {
                 val log = MissionLog(
                     timestamp = sdf.format(Date()),
@@ -147,6 +159,10 @@ class TelemetryViewModel : ViewModel() {
                     longitude = longitude
                 )
                 missionLogs.add(log)
+                
+                // Also add a summary to system logs for visibility
+                addLog(LogLevel.DEBUG, "Telemetry Sync: Alt ${"%.1f".format(altitude)}m, Spd ${"%.1f".format(speed)}km/h")
+                
                 if (missionLogs.size >= 100) stopMission()
                 delay(5000)
             }
@@ -154,6 +170,9 @@ class TelemetryViewModel : ViewModel() {
     }
 
     fun stopMission() {
+        if (isMissionActive) {
+            addLog(LogLevel.INFO, "Mission Aborted/Completed")
+        }
         isMissionActive = false
         isRthActive = false
         currentWaypointIndex = -1
