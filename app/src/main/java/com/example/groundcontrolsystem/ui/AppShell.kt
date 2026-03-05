@@ -48,7 +48,8 @@ fun AppShell(
             Column(modifier = Modifier.fillMaxSize()) {
                 TopCommandBar(
                     modifier = Modifier.fillMaxWidth(),
-                    statusText = if (telemetryViewModel.isConnected) "SYSTEM CONNECTED" else "DISCONNECTED"
+                    statusText = if (telemetryViewModel.isConnected) "SYSTEM CONNECTED" else "DISCONNECTED",
+                    isRthActive = telemetryViewModel.isRthActive
                 )
 
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
