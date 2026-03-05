@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -198,8 +199,3 @@ fun ActionCard(
         }
     }
 }
-
-// Extension to use alpha on Modifier
-fun Modifier.alpha(alpha: Float): Modifier = this.then(
-    androidx.compose.ui.draw.alpha(alpha)
-)
