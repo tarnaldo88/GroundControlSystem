@@ -5,11 +5,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
+import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Code
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -27,8 +27,6 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.groundcontrolsystem.ui.navigation.Routes
 
-//import com.example.groundcontrolsystem.NavItem
-
 private data class NavItem(
     val route: String,
     val label: String,
@@ -45,6 +43,7 @@ fun LeftNavRail(
         NavItem(Routes.Camera.route, "Camera View", Icons.AutoMirrored.Outlined.KeyboardArrowRight),
         NavItem(Routes.Gps.route, "GPS", Icons.Default.Place),
         NavItem(Routes.MissionPlan.route, "Mission Plan", Icons.Default.Code),
+        NavItem(Routes.Statistics.route, "Stats", Icons.Default.BarChart),
         NavItem(Routes.Logs.route, "Logs", Icons.Default.Warning),
         NavItem(Routes.Settings.route, "Settings", Icons.Default.Settings)
     )
