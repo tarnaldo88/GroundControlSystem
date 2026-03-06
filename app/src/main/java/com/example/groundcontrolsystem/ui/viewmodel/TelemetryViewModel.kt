@@ -1,6 +1,7 @@
 package com.example.groundcontrolsystem.ui.viewmodel
 
 import android.app.Application
+import android.graphics.RectF
 import android.speech.tts.TextToSpeech
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
@@ -75,6 +76,10 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     
     // For Statistics Screen (rolling buffer)
     val telemetryHistory = mutableStateListOf<MissionLog>()
+
+    // Camera & Vision Features
+    var isRecording by mutableStateOf(false)
+    var trackedObjectBox by mutableStateOf<RectF?>(null)
 
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
@@ -257,6 +262,17 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         isRthActive = false
         currentWaypointIndex = -1
         activeWaypoints.clear()
+    }
+
+    fun toggleRecording() {
+        isRecording = !isRecording
+        if (isRecording) {
+            speak("Recording started.")
+            addLog(LogLevel.INFO, "Video recording started")
+        } else {
+            speak("Recording saved.")
+            addLog(LogLevel.INFO, "Video recording saved")
+        }
     }
 
     override fun onCleared() {
