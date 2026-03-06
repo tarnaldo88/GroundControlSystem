@@ -9,12 +9,16 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.osmdroid.tileprovider.tilesource.ITileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
+import java.net.DatagramPacket
+import java.net.DatagramSocket
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -74,7 +78,6 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     val missionLogs = mutableStateListOf<MissionLog>()
     val systemLogs = mutableStateListOf<SystemLog>()
     
-    // For Statistics Screen (rolling buffer)
     val telemetryHistory = mutableStateListOf<MissionLog>()
 
     // Camera & Vision Features
@@ -86,6 +89,7 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     private var lastBatteryWarning = 0f
 
     private var loggingJob: Job? = null
+    private var udpJob: Job? = null
     private val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
     init {
@@ -96,14 +100,14 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         viewModelScope.launch {
             while (true) {
                 if (isConnected) {
-                    batteryLevel = max(0f, batteryLevel - (1f / 500f))
+                    batteryLevel = max(0f, batteryLevel - (1f / 800f))
                     signalStrength = (0.7f + (Math.random().toFloat() * 0.3f)).coerceIn(0f, 1f)
                     
                     checkAlerts()
 
                     if (isMissionActive) {
                         simulateFlight()
-                    } else {
+                    } else if (!isUdpActive()) {
                         speed = max(0f, speed - 1f)
                         altitude = max(0f, altitude - 2f)
                     }
@@ -112,7 +116,6 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
                     speed = 0f
                 }
                 
-                // Update live history for charts
                 val currentLog = MissionLog(sdf.format(Date()), speed, altitude, latitude, longitude)
                 telemetryHistory.add(currentLog)
                 if (telemetryHistory.size > 50) telemetryHistory.removeAt(0)
@@ -121,6 +124,8 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
             }
         }
     }
+
+    private fun isUdpActive(): Boolean = udpJob?.isActive == true
 
     private fun checkAlerts() {
         if (batteryLevel < 0.2f && lastBatteryWarning != 0.2f) {
@@ -227,15 +232,65 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     fun toggleConnection() {
-        isConnected = !isConnected
-        if (isConnected) {
+        if (!isConnected) {
+            startUdpListener()
+            isConnected = true
             speak("Ground control station connected.")
-            addLog(LogLevel.INFO, "GCS Connected to Drone")
+            addLog(LogLevel.INFO, "GCS Connected. UDP Listener started on port 14550.")
         } else {
+            stopUdpListener()
+            isConnected = false
             speak("Connection lost.")
-            addLog(LogLevel.ERROR, "Link Lost. Connection terminated.")
+            addLog(LogLevel.ERROR, "GCS Disconnected.")
             stopMission()
         }
+    }
+
+    private fun startUdpListener() {
+        udpJob?.cancel()
+        udpJob = viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val socket = DatagramSocket(14550)
+                val buffer = ByteArray(1024)
+                while (isConnected) {
+                    val packet = DatagramPacket(buffer, buffer.size)
+                    socket.receive(packet)
+                    val data = String(packet.data, 0, packet.length)
+                    parseUdpData(data)
+                }
+                socket.close()
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    addLog(LogLevel.ERROR, "UDP Error: ${e.message}")
+                }
+            }
+        }
+    }
+
+    private fun stopUdpListener() {
+        udpJob?.cancel()
+        udpJob = null
+    }
+
+    private fun parseUdpData(data: String) {
+        // Simple mock MAVLink-like parser: "lat:1.35;lon:103.8;alt:100;spd:15"
+        try {
+            viewModelScope.launch(Dispatchers.Main) {
+                val parts = data.split(";")
+                parts.forEach { part ->
+                    val pair = part.split(":")
+                    if (pair.size == 2) {
+                        when (pair[0]) {
+                            "lat" -> latitude = pair[1].toDouble()
+                            "lon" -> longitude = pair[1].toDouble()
+                            "alt" -> altitude = pair[1].toFloat()
+                            "spd" -> speed = pair[1].toFloat()
+                            "bat" -> batteryLevel = pair[1].toFloat() / 100f
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {}
     }
 
     fun startMission(waypoints: List<Waypoint>) {
@@ -278,6 +333,7 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     override fun onCleared() {
         tts?.stop()
         tts?.shutdown()
+        stopUdpListener()
         super.onCleared()
     }
 
