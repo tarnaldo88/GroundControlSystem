@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 import kotlin.coroutines.resume
 import kotlin.coroutines.suspendCoroutine
+import kotlin.math.abs
 
 @Composable
 fun CameraScreen(viewModel: TelemetryViewModel) {
@@ -74,16 +75,6 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
     var zoomRatio by remember { mutableFloatStateOf(1f) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
     val previewView = remember { PreviewView(context) }
-
-    // Night Vision Filter
-    val nightVisionMatrix = remember {
-        ColorMatrix(floatArrayOf(
-            0f, 0f, 0f, 0f, 0f,
-            0f, 1.5f, 0f, 0f, 0f,
-            0f, 0f, 0f, 0f, 0f,
-            0f, 0f, 0f, 1f, 0f
-        ))
-    }
 
     // Object Selection State
     var selectionStart by remember { mutableStateOf<Offset?>(null) }
@@ -125,10 +116,10 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
             modifier = Modifier.fillMaxSize()
         )
 
-        // Thermal/Night Vision Overlay
-        if (viewModel.systemLogs.any { it.message.contains("IR", ignoreCase = true) } || viewModel.isRecording) { // Using recording as a proxy for demo or we can use a dedicated state
+        // Thermal/Night Vision Overlay simulation
+        if (viewModel.systemLogs.any { it.message.contains("IR", ignoreCase = true) }) {
             Canvas(Modifier.fillMaxSize()) {
-                drawRect(color = Color.Green.copy(alpha = 0.1f))
+                drawRect(color = Color.Green.copy(alpha = 0.15f))
             }
         }
 
@@ -199,10 +190,10 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
                     containerColor = if (viewModel.isRecording) Color.Red else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(72.dp)
                 ) {
-                    Icon(if (viewModel.isRecording) Icons.Default.Stop : Icons.Default.FiberManualRecord, contentDescription = "Record", modifier = Modifier.size(36.dp))
+                    Icon(if (viewModel.isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord, contentDescription = "Record", modifier = Modifier.size(36.dp))
                 }
 
-                FilledTonalButton(onClick = { /* IR Toggle logic */ }) {
+                FilledTonalButton(onClick = { /* Toggle IR via ViewModel log for now */ }) {
                     Text("IR")
                 }
             }
