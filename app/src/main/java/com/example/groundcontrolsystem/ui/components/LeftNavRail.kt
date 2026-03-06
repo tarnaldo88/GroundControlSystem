@@ -7,6 +7,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.outlined.KeyboardArrowRight
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Code
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Settings
@@ -44,6 +45,7 @@ fun LeftNavRail(
         NavItem(Routes.Gps.route, "GPS", Icons.Default.Place),
         NavItem(Routes.MissionPlan.route, "Mission Plan", Icons.Default.Code),
         NavItem(Routes.Statistics.route, "Stats", Icons.Default.BarChart),
+        NavItem(Routes.Replay.route, "Replay", Icons.Default.History),
         NavItem(Routes.Logs.route, "Logs", Icons.Default.Warning),
         NavItem(Routes.Settings.route, "Settings", Icons.Default.Settings)
     )
