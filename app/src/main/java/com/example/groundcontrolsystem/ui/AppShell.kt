@@ -45,7 +45,7 @@ fun AppShell(
                 modifier = Modifier.fillMaxHeight().width(1.dp)
             )
 
-            Column(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.weight(1f).fillMaxHeight()) {
                 TopCommandBar(
                     modifier = Modifier.fillMaxWidth(),
                     statusText = if (telemetryViewModel.isConnected) "SYSTEM CONNECTED" else "DISCONNECTED",
@@ -54,7 +54,7 @@ fun AppShell(
 
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
 
-                Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp)) {
                     AppNavHost(
                         navController = navController,
                         isNightVision = isNightVision,
