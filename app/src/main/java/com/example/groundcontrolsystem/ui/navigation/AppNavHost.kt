@@ -12,6 +12,7 @@ import com.example.groundcontrolsystem.ui.screens.logs.LogsScreen
 import com.example.groundcontrolsystem.ui.screens.settings.SettingsScreen
 import com.example.groundcontrolsystem.ui.screens.missionplan.MissionPlanScreen
 import com.example.groundcontrolsystem.ui.screens.statistics.StatisticsScreen
+import com.example.groundcontrolsystem.ui.screens.replay.ReplayScreen
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 
 @Composable
@@ -48,6 +49,9 @@ fun AppNavHost(
         }
         composable(Routes.Statistics.route) {
             StatisticsScreen(telemetryViewModel)
+        }
+        composable(Routes.Replay.route) {
+            ReplayScreen(telemetryViewModel)
         }
     }
 }
