@@ -22,6 +22,19 @@ enum class LogLevel {
     INFO, WARNING, ERROR, DEBUG
 }
 
+enum class WaypointAction {
+    NAVIGATE, HOVER, TAKE_PHOTO, LAND
+}
+
+data class Waypoint(
+    val id: Int,
+    val location: GeoPoint,
+    val targetAltitude: Float = 100f,
+    val targetSpeed: Float = 20f,
+    val action: WaypointAction = WaypointAction.NAVIGATE,
+    val actionDuration: Int = 0 // seconds
+)
+
 data class SystemLog(
     val timestamp: String,
     val level: LogLevel,
@@ -50,7 +63,7 @@ class TelemetryViewModel : ViewModel() {
     var isRthActive by mutableStateOf(false)
     
     var currentWaypointIndex by mutableStateOf(-1)
-    var activeWaypoints = mutableStateListOf<GeoPoint>()
+    var activeWaypoints = mutableStateListOf<Waypoint>()
     
     // Map Tile Source Shared State
     var currentTileSource: ITileSource by mutableStateOf(TileSourceFactory.MAPNIK)
@@ -67,7 +80,7 @@ class TelemetryViewModel : ViewModel() {
         viewModelScope.launch {
             while (true) {
                 if (isConnected) {
-                    batteryLevel = max(0f, batteryLevel - (1f / 150f))
+                    batteryLevel = max(0f, batteryLevel - (1f / 250f))
                     signalStrength = (0.7f + (Math.random().toFloat() * 0.3f)).coerceIn(0f, 1f)
                     
                     if (batteryLevel < 0.2f && isMissionActive && !isRthActive) {
@@ -87,27 +100,27 @@ class TelemetryViewModel : ViewModel() {
                                 stopMission()
                             }
                         } else {
-                            speed = (speed + (25f - speed) * 0.1f).coerceIn(0f, 30f)
-                            altitude = (altitude + (150f - altitude) * 0.1f).coerceIn(0f, 200f)
-                            
                             if (activeWaypoints.isNotEmpty() && currentWaypointIndex != -1) {
-                                val target = activeWaypoints[currentWaypointIndex]
+                                val targetWp = activeWaypoints[currentWaypointIndex]
+                                val target = targetWp.location
+                                
+                                // Simulation of flight towards waypoint
+                                speed = (speed + (targetWp.targetSpeed - speed) * 0.1f).coerceIn(0f, 40f)
+                                altitude = (altitude + (targetWp.targetAltitude - altitude) * 0.1f).coerceIn(0f, 500f)
+                                
                                 val latDiff = target.latitude - latitude
                                 val lonDiff = target.longitude - longitude
                                 latitude += latDiff * 0.05
                                 longitude += lonDiff * 0.05
                                 
                                 if (abs(latDiff) < 0.0005 && abs(lonDiff) < 0.0005) {
-                                    addLog(LogLevel.DEBUG, "Reached Waypoint ${currentWaypointIndex + 1}")
-                                    if (currentWaypointIndex < activeWaypoints.size - 1) {
-                                        currentWaypointIndex++
-                                    } else {
-                                        speed = max(0f, speed - 2f)
-                                    }
+                                    handleWaypointArrival(targetWp)
                                 }
                             } else {
-                                latitude += (Math.random() - 0.4) * 0.0002
-                                longitude += (Math.random() - 0.4) * 0.0002
+                                speed = (speed + (20f - speed) * 0.1f)
+                                altitude = (altitude + (100f - altitude) * 0.1f)
+                                latitude += (Math.random() - 0.5) * 0.0002
+                                longitude += (Math.random() - 0.5) * 0.0002
                             }
                         }
                     } else {
@@ -120,6 +133,35 @@ class TelemetryViewModel : ViewModel() {
                 }
                 delay(1000)
             }
+        }
+    }
+
+    private suspend fun handleWaypointArrival(wp: Waypoint) {
+        when (wp.action) {
+            WaypointAction.HOVER -> {
+                addLog(LogLevel.INFO, "Hovering at Waypoint ${wp.id} for ${wp.actionDuration}s")
+                speed = 0f
+                delay(wp.actionDuration * 1000L)
+            }
+            WaypointAction.TAKE_PHOTO -> {
+                addLog(LogLevel.INFO, "Taking photo at Waypoint ${wp.id}")
+                delay(2000)
+            }
+            WaypointAction.LAND -> {
+                addLog(LogLevel.INFO, "Landing at Waypoint ${wp.id}")
+                stopMission()
+                return
+            }
+            else -> {
+                addLog(LogLevel.DEBUG, "Reached Waypoint ${wp.id}")
+            }
+        }
+
+        if (currentWaypointIndex < activeWaypoints.size - 1) {
+            currentWaypointIndex++
+        } else {
+            addLog(LogLevel.INFO, "Mission Path Completed")
+            isRthActive = true // Auto RTH after completion
         }
     }
 
@@ -141,7 +183,7 @@ class TelemetryViewModel : ViewModel() {
         }
     }
 
-    fun startMission(waypoints: List<GeoPoint> = emptyList()) {
+    fun startMission(waypoints: List<Waypoint>) {
         if (isConnected && !isMissionActive) {
             activeWaypoints.clear()
             activeWaypoints.addAll(waypoints)
@@ -168,10 +210,6 @@ class TelemetryViewModel : ViewModel() {
                     longitude = longitude
                 )
                 missionLogs.add(log)
-                
-                addLog(LogLevel.DEBUG, "Telemetry Sync: Alt ${"%.1f".format(altitude)}m, Spd ${"%.1f".format(speed)}km/h")
-                
-                if (missionLogs.size >= 100) stopMission()
                 delay(5000)
             }
         }
