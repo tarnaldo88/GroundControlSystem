@@ -21,7 +21,7 @@ class DashboardScreenTest {
     val composeTestRule = createComposeRule()
 
     private lateinit var viewModel: TelemetryViewModel
-    private val mockApplication = mock(Application::class.java)
+    private val mockApplication: Application = mock(Application::class.java)
 
     @Before
     fun setup() {
