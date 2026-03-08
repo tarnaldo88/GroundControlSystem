@@ -7,13 +7,13 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.core.app.ApplicationProvider
 import com.example.groundcontrolsystem.ui.screens.dashboard.DashboardScreen
 import com.example.groundcontrolsystem.ui.viewmodel.MissionLog
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.Mockito.mock
 
 class DashboardScreenTest {
 
@@ -21,11 +21,11 @@ class DashboardScreenTest {
     val composeTestRule = createComposeRule()
 
     private lateinit var viewModel: TelemetryViewModel
-    private val mockApplication: Application = mock(Application::class.java)
+    private val application: Application = ApplicationProvider.getApplicationContext()
 
     @Before
     fun setup() {
-        viewModel = TelemetryViewModel(mockApplication)
+        viewModel = TelemetryViewModel(application)
     }
 
     @Test
