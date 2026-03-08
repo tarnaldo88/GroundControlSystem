@@ -6,12 +6,12 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.test.core.app.ApplicationProvider
 import com.example.groundcontrolsystem.ui.screens.missionplan.MissionPlanScreen
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.mockito.Mockito.mock
 
 class MissionPlanScreenTest {
 
@@ -19,11 +19,11 @@ class MissionPlanScreenTest {
     val composeTestRule = createComposeRule()
 
     private lateinit var viewModel: TelemetryViewModel
-    private val mockApplication: Application = mock(Application::class.java)
+    private val application: Application = ApplicationProvider.getApplicationContext()
 
     @Before
     fun setup() {
-        viewModel = TelemetryViewModel(mockApplication)
+        viewModel = TelemetryViewModel(application)
     }
 
     @Test
@@ -53,11 +53,6 @@ class MissionPlanScreenTest {
     fun executeButtonEnabledWhenConnectedAndWaypointsExist() {
         // Mock connection
         viewModel.toggleConnection()
-        
-        // Note: Adding waypoints usually happens via map interaction in the real app.
-        // For this test, we would ideally need to simulate a map tap or use a 
-        // test-only way to inject waypoints into the screen's internal state.
-        // Since waypoints is internal to the Composable, we can't easily set it from here.
         
         composeTestRule.setContent {
             MissionPlanScreen(viewModel = viewModel)
