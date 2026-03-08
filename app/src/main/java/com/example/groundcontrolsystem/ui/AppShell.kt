@@ -15,6 +15,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.rememberNavController
@@ -54,7 +55,7 @@ fun AppShell(
 
                 HorizontalDivider(modifier = Modifier.fillMaxWidth().height(1.dp))
 
-                Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp)) {
+                Box(modifier = Modifier.weight(1f).fillMaxWidth().padding(16.dp).clipToBounds()) {
                     AppNavHost(
                         navController = navController,
                         isNightVision = isNightVision,
