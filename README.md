@@ -1,6 +1,6 @@
 # Ground Control System
 
-A professional Android application designed for the command, control, and monitoring of unmanned aerial vehicles. This system integrates real-time telemetry, mission planning, and data analysis tools into a unified Jetpack Compose interface.
+An Android application designed for the command, control, and monitoring of unmanned aerial vehicles. This system integrates real-time telemetry, mission planning, and data analysis tools into a unified Jetpack Compose interface.
 
 ## Key Features
 
