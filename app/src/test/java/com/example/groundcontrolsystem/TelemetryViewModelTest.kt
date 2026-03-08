@@ -1,24 +1,43 @@
 package com.example.groundcontrolsystem
 
 import android.app.Application
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.example.groundcontrolsystem.ui.viewmodel.LogLevel
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 import com.example.groundcontrolsystem.ui.viewmodel.Waypoint
 import com.example.groundcontrolsystem.ui.viewmodel.WaypointAction
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.*
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.osmdroid.util.GeoPoint
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class TelemetryViewModelTest {
 
+    @get:Rule
+    val instantTaskExecutorRule = InstantTaskExecutorRule()
+
+    private val testDispatcher = StandardTestDispatcher()
     private lateinit var viewModel: TelemetryViewModel
     private val mockApplication = mock(Application::class.java)
 
     @Before
     fun setup() {
+        Dispatchers.setMain(testDispatcher)
         viewModel = TelemetryViewModel(mockApplication)
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
     }
 
     @Test
