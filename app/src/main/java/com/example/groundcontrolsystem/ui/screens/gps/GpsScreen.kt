@@ -16,7 +16,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
-import org.osmdroid.config.Configuration
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
@@ -25,7 +24,6 @@ import org.osmdroid.views.overlay.Marker
 @Composable
 fun GpsScreen(viewModel: TelemetryViewModel) {
     val context = LocalContext.current
-    Configuration.getInstance().userAgentValue = context.packageName
 
     var followDrone by remember { mutableStateOf(true) }
     var showLayerMenu by remember { mutableStateOf(false) }

@@ -24,8 +24,11 @@ class MainActivity : ComponentActivity() {
         // Initialize osmdroid configuration
         val osmConfig = Configuration.getInstance()
         
-        // Use a generic user agent to avoid being blocked by some tile servers
-        osmConfig.userAgentValue = "Mozilla/5.0 (Android 15; Mobile; rv:115.0) Gecko/115.0 Firefox/115.0"
+        // Load existing config first so we don't overwrite our manual settings later
+        osmConfig.load(this, getSharedPreferences("osmdroid", MODE_PRIVATE))
+        
+        // Set a unique and descriptive user agent (REQUIRED by OSM servers)
+        osmConfig.userAgentValue = packageName
         
         // Redirect cache to internal storage to avoid permission issues
         val basePath = File(filesDir, "osmdroid")
@@ -35,9 +38,6 @@ class MainActivity : ComponentActivity() {
         val tilePath = File(basePath, "tiles")
         if (!tilePath.exists()) tilePath.mkdirs()
         osmConfig.osmdroidTileCache = tilePath
-
-        // Load configuration from shared preferences
-        osmConfig.load(this, getSharedPreferences("osmdroid", MODE_PRIVATE))
 
         requestPermissionsIfNecessary(
             arrayOf(
