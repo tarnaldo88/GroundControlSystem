@@ -26,6 +26,7 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.MapEventsOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Polyline
+import org.osmdroid.views.overlay.Polygon
 
 @Composable
 fun MissionPlanScreen(viewModel: TelemetryViewModel) {
@@ -77,13 +78,25 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
             override fun longPressHelper(p: GeoPoint): Boolean = false
         })
         mapView.overlays.add(0, eventsOverlay)
+        
+        // Add NFZ Overlays
+        viewModel.noFlyZones.forEach { nfz ->
+            val circle = Polygon().apply {
+                points = Polygon.pointsAsCircle(nfz.center, nfz.radiusMeter)
+                fillPaint.color = android.graphics.Color.argb(50, 255, 0, 0)
+                outlinePaint.color = android.graphics.Color.RED
+                outlinePaint.strokeWidth = 2f
+                title = "NFZ: ${nfz.name}"
+            }
+            mapView.overlays.add(circle)
+        }
     }
 
     LaunchedEffect(waypoints) {
-        mapView.overlays.removeAll { it is Marker && it != droneMarker || it is Polyline }
+        mapView.overlays.removeAll { it is Marker && it != droneMarker || (it is Polyline && it != polyline) }
         val points = waypoints.map { it.location }
         polyline.setPoints(points)
-        mapView.overlays.add(polyline)
+        if (!mapView.overlays.contains(polyline)) mapView.overlays.add(polyline)
 
         waypoints.forEach { wp ->
             val marker = Marker(mapView)
@@ -233,6 +246,10 @@ fun MissionPlanScreen(viewModel: TelemetryViewModel) {
                 }
             }
         }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose { mapView.onDetach() }
     }
 }
 
