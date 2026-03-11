@@ -5,6 +5,7 @@ import android.graphics.RectF
 import android.speech.tts.TextToSpeech
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
@@ -65,47 +66,56 @@ data class NoFlyZone(
     val radiusMeter: Double
 )
 
-class TelemetryViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
-    var batteryLevel by mutableStateOf(1f)
-    var isConnected by mutableStateOf(false)
-    var signalStrength by mutableStateOf(0f)
-    
-    var speed by mutableStateOf(0f)
-    var altitude by mutableStateOf(0f)
-    var latitude by mutableStateOf(1.3521)
-    var longitude by mutableStateOf(103.8198)
-    
-    var isMissionActive by mutableStateOf(false)
-    var isRthActive by mutableStateOf(false)
-    
-    var currentWaypointIndex by mutableStateOf(-1)
-    var activeWaypoints = mutableStateListOf<Waypoint>()
-    
-    // Map Tile Source Shared State
-    var currentTileSource: ITileSource by mutableStateOf(TileSourceFactory.MAPNIK)
+data class DroneState(
+    val id: String,
+    val name: String,
+    var batteryLevel: Float = 1f,
+    var signalStrength: Float = 0f,
+    var speed: Float = 0f,
+    var altitude: Float = 0f,
+    var latitude: Double = 1.3521,
+    var longitude: Double = 103.8198,
+    var isMissionActive: Boolean = false,
+    var isRthActive: Boolean = false,
+    var currentWaypointIndex: Int = -1,
+    val activeWaypoints: MutableList<Waypoint> = mutableListOf()
+)
 
+class TelemetryViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
+    // Multi-Drone Support
+    val drones = mutableStateMapOf<String, DroneState>()
+    var activeDroneId by mutableStateOf("drone_1")
+
+    // Active Drone Derived Properties (for UI compatibility)
+    val activeDroneState: DroneState? get() = drones[activeDroneId]
+    
+    val batteryLevel: Float get() = activeDroneState?.batteryLevel ?: 0f
+    val isConnected: Boolean get() = activeDroneId in drones
+    val signalStrength: Float get() = activeDroneState?.signalStrength ?: 0f
+    val speed: Float get() = activeDroneState?.speed ?: 0f
+    val altitude: Float get() = activeDroneState?.altitude ?: 0f
+    val latitude: Double get() = activeDroneState?.latitude ?: 1.3521
+    val longitude: Double get() = activeDroneState?.longitude ?: 103.8198
+    val isMissionActive: Boolean get() = activeDroneState?.isMissionActive ?: false
+    val isRthActive: Boolean get() = activeDroneState?.isRthActive ?: false
+    val currentWaypointIndex: Int get() = activeDroneState?.currentWaypointIndex ?: -1
+    val activeWaypoints: List<Waypoint> get() = activeDroneState?.activeWaypoints ?: emptyList()
+
+    // Shared State
+    var currentTileSource: ITileSource by mutableStateOf(TileSourceFactory.MAPNIK)
     val missionLogs = mutableStateListOf<MissionLog>()
     val systemLogs = mutableStateListOf<SystemLog>()
-    
     val telemetryHistory = mutableStateListOf<MissionLog>()
-
-    // NFZ State
     val noFlyZones = mutableStateListOf<NoFlyZone>()
     var isNearNfz by mutableStateOf(false)
-
-    // Cache State
     var isCaching by mutableStateOf(false)
     var cacheProgress by mutableStateOf(0f)
-
-    // Camera & Vision Features
     var isRecording by mutableStateOf(false)
     var trackedObjectBox by mutableStateOf<RectF?>(null)
 
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
     private var lastBatteryWarning = 0f
-
-    private var loggingJob: Job? = null
     private var udpJob: Job? = null
     private val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
 
@@ -113,69 +123,63 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         tts = TextToSpeech(application, this)
         addLog(LogLevel.INFO, "System initialized and ready")
         
-        // Add sample No-Fly Zones
+        // Initialize with one default drone
+        drones["drone_1"] = DroneState("drone_1", "Primary Drone")
+        
         noFlyZones.add(NoFlyZone("1", "Airport Alpha", GeoPoint(1.3644, 103.9915), 5000.0))
         noFlyZones.add(NoFlyZone("2", "Government Plaza", GeoPoint(1.3521, 103.8198 + 0.05), 2000.0))
 
-        // Continuous Telemetry & TTS Monitoring
         viewModelScope.launch {
             while (true) {
-                if (isConnected) {
-                    batteryLevel = max(0f, batteryLevel - (1f / 800f))
-                    signalStrength = (0.7f + (Math.random().toFloat() * 0.3f)).coerceIn(0f, 1f)
-                    
-                    checkAlerts()
-                    checkNfzProximity()
-
-                    if (isMissionActive) {
-                        simulateFlight()
-                    } else if (!isUdpActive()) {
-                        speed = max(0f, speed - 1f)
-                        altitude = max(0f, altitude - 2f)
-                    }
-                } else {
-                    signalStrength = 0f
-                    speed = 0f
+                drones.forEach { (id, state) ->
+                    simulateStateUpdate(state)
                 }
                 
-                val currentLog = MissionLog(sdf.format(Date()), speed, altitude, latitude, longitude)
-                telemetryHistory.add(currentLog)
-                if (telemetryHistory.size > 50) telemetryHistory.removeAt(0)
+                activeDroneState?.let {
+                    val currentLog = MissionLog(sdf.format(Date()), it.speed, it.altitude, it.latitude, it.longitude)
+                    telemetryHistory.add(currentLog)
+                    if (telemetryHistory.size > 50) telemetryHistory.removeAt(0)
+                    
+                    checkAlerts(it)
+                    checkNfzProximity(it)
+                }
                 
                 delay(1000)
             }
         }
     }
 
-    private fun isUdpActive(): Boolean = udpJob?.isActive == true
-
-    private fun checkAlerts() {
-        if (batteryLevel < 0.2f && lastBatteryWarning != 0.2f) {
-            speak("Warning: Battery low. 20 percent remaining.")
-            addLog(LogLevel.WARNING, "Low battery alert: 20%")
-            lastBatteryWarning = 0.2f
-        } else if (batteryLevel < 0.1f && lastBatteryWarning != 0.1f) {
-            speak("Critical Warning: Battery at 10 percent. Landing recommended.")
-            addLog(LogLevel.ERROR, "Critical battery alert: 10%")
-            lastBatteryWarning = 0.1f
+    private fun simulateStateUpdate(state: DroneState) {
+        if (state.isMissionActive) {
+            simulateFlight(state)
+        } else {
+            state.speed = max(0f, state.speed - 1f)
+            state.altitude = max(0f, state.altitude - 2f)
         }
+        state.batteryLevel = max(0f, state.batteryLevel - (1f / 1200f))
+        state.signalStrength = (0.7f + (Math.random().toFloat() * 0.3f)).coerceIn(0f, 1f)
+    }
 
-        if (batteryLevel < 0.2f && isMissionActive && !isRthActive) {
-            isRthActive = true
-            speak("Low battery detected. Emergency return to home initiated.")
-            addLog(LogLevel.WARNING, "Emergency RTH initiated due to low battery")
+    private fun checkAlerts(state: DroneState) {
+        if (state.batteryLevel < 0.2f && lastBatteryWarning != 0.2f) {
+            speak("Warning: ${state.name} Battery low.")
+            addLog(LogLevel.WARNING, "${state.name} Low battery alert: 20%")
+            lastBatteryWarning = 0.2f
+        }
+        if (state.batteryLevel < 0.2f && state.isMissionActive && !state.isRthActive) {
+            state.isRthActive = true
+            speak("Emergency RTH initiated for ${state.name}.")
         }
     }
 
-    private fun checkNfzProximity() {
+    private fun checkNfzProximity(state: DroneState) {
         var nearAny = false
         noFlyZones.forEach { nfz ->
-            val distance = calculateDistance(latitude, longitude, nfz.center.latitude, nfz.center.longitude)
-            if (distance < nfz.radiusMeter + 500.0) { // 500m buffer
+            val distance = calculateDistance(state.latitude, state.longitude, nfz.center.latitude, nfz.center.longitude)
+            if (distance < nfz.radiusMeter + 500.0) {
                 nearAny = true
                 if (!isNearNfz) {
-                    speak("Warning: Approaching restricted air space. ${nfz.name}")
-                    addLog(LogLevel.WARNING, "Restricted Airspace Proximity: ${nfz.name}")
+                    speak("Warning: ${state.name} entering restricted airspace.")
                 }
             }
         }
@@ -183,7 +187,7 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     }
 
     private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
-        val r = 6371000.0 // Earth radius in meters
+        val r = 6371000.0
         val dLat = Math.toRadians(lat2 - lat1)
         val dLon = Math.toRadians(lon2 - lon1)
         val a = sin(dLat / 2) * sin(dLat / 2) +
@@ -193,69 +197,88 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         return r * c
     }
 
-    private suspend fun simulateFlight() {
-        if (isRthActive) {
-            speed = (speed + (35f - speed) * 0.1f).coerceIn(0f, 40f)
-            altitude = (altitude + (50f - altitude) * 0.05f).coerceIn(0f, 200f)
-            latitude += (1.3521 - latitude) * 0.05
-            longitude += (103.8198 - longitude) * 0.05
+    private fun simulateFlight(state: DroneState) {
+        if (state.isRthActive) {
+            state.speed = (state.speed + (35f - state.speed) * 0.1f).coerceIn(0f, 40f)
+            state.altitude = (state.altitude + (50f - state.altitude) * 0.05f).coerceIn(0f, 200f)
+            state.latitude += (1.3521 - state.latitude) * 0.02
+            state.longitude += (103.8198 - state.longitude) * 0.02
             
-            if (abs(latitude - 1.3521) < 0.0001 && abs(longitude - 103.8198) < 0.0001) {
-                speak("Return to home complete. Drone landed.")
-                addLog(LogLevel.INFO, "RTH Complete. Drone landed at home.")
-                stopMission()
+            if (abs(state.latitude - 1.3521) < 0.0001 && abs(state.longitude - 103.8198) < 0.0001) {
+                speak("${state.name} landed.")
+                state.isMissionActive = false
+                state.isRthActive = false
             }
-        } else {
-            if (activeWaypoints.isNotEmpty() && currentWaypointIndex != -1) {
-                val targetWp = activeWaypoints[currentWaypointIndex]
-                val target = targetWp.location
-                
-                speed = (speed + (targetWp.targetSpeed - speed) * 0.1f).coerceIn(0f, 40f)
-                altitude = (altitude + (targetWp.targetAltitude - altitude) * 0.1f).coerceIn(0f, 500f)
-                
-                val latDiff = target.latitude - latitude
-                val lonDiff = target.longitude - longitude
-                latitude += latDiff * 0.05
-                longitude += lonDiff * 0.05
-                
-                if (abs(latDiff) < 0.0005 && abs(lonDiff) < 0.0005) {
-                    handleWaypointArrival(targetWp)
+        } else if (state.activeWaypoints.isNotEmpty() && state.currentWaypointIndex != -1) {
+            val targetWp = state.activeWaypoints[state.currentWaypointIndex]
+            val target = targetWp.location
+            
+            state.speed = (state.speed + (targetWp.targetSpeed - state.speed) * 0.1f).coerceIn(0f, 40f)
+            state.altitude = (state.altitude + (targetWp.targetAltitude - state.altitude) * 0.1f).coerceIn(0f, 500f)
+            
+            val latDiff = target.latitude - state.latitude
+            val lonDiff = target.longitude - state.longitude
+            state.latitude += latDiff * 0.05
+            state.longitude += lonDiff * 0.05
+            
+            if (abs(latDiff) < 0.0005 && abs(lonDiff) < 0.0005) {
+                if (state.currentWaypointIndex < state.activeWaypoints.size - 1) {
+                    state.currentWaypointIndex++
+                } else {
+                    state.isRthActive = true
                 }
             }
         }
     }
 
-    private suspend fun handleWaypointArrival(wp: Waypoint) {
-        speak("Reached waypoint ${wp.id}")
-        when (wp.action) {
-            WaypointAction.HOVER -> {
-                addLog(LogLevel.INFO, "Hovering at Waypoint ${wp.id} for ${wp.actionDuration}s")
-                speed = 0f
-                delay(wp.actionDuration * 1000L)
-            }
-            WaypointAction.TAKE_PHOTO -> {
-                addLog(LogLevel.INFO, "Taking photo at Waypoint ${wp.id}")
-                speak("Taking photograph")
-                delay(2000)
-            }
-            WaypointAction.LAND -> {
-                addLog(LogLevel.INFO, "Landing at Waypoint ${wp.id}")
-                speak("Mission target reached. Landing.")
-                stopMission()
-                return
-            }
-            else -> {
-                addLog(LogLevel.DEBUG, "Reached Waypoint ${wp.id}")
-            }
-        }
+    fun addDrone(id: String, name: String) {
+        drones[id] = DroneState(id, name)
+        addLog(LogLevel.INFO, "New drone registered: $name")
+    }
 
-        if (currentWaypointIndex < activeWaypoints.size - 1) {
-            currentWaypointIndex++
-        } else {
-            speak("Mission path completed. Returning to home.")
-            addLog(LogLevel.INFO, "Mission Path Completed")
-            isRthActive = true
+    fun switchActiveDrone(id: String) {
+        if (id in drones) {
+            activeDroneId = id
+            addLog(LogLevel.INFO, "Switched control to: ${drones[id]?.name}")
         }
+    }
+
+    fun toggleConnection() {
+        if (activeDroneId in drones) {
+            // Simulation: toggleConnection just acts as a switch here
+            addLog(LogLevel.INFO, "Active connection toggled for $activeDroneId")
+        }
+    }
+
+    fun startMission(waypoints: List<Waypoint>) {
+        activeDroneState?.let { state ->
+            state.activeWaypoints.clear()
+            state.activeWaypoints.addAll(waypoints)
+            state.currentWaypointIndex = 0
+            state.isMissionActive = true
+            state.isRthActive = false
+            addLog(LogLevel.INFO, "Mission started for ${state.name}")
+        }
+    }
+
+    fun stopMission() {
+        activeDroneState?.let { state ->
+            state.isMissionActive = false
+            state.currentWaypointIndex = -1
+            addLog(LogLevel.INFO, "Mission stopped for ${state.name}")
+        }
+    }
+
+    fun toggleRecording() {
+        isRecording = !isRecording
+    }
+
+    fun setTileSource(source: ITileSource) {
+        currentTileSource = source
+    }
+
+    private fun addLog(level: LogLevel, message: String) {
+        systemLogs.add(0, SystemLog(sdf.format(Date()), level, message))
     }
 
     override fun onInit(status: Int) {
@@ -271,186 +294,25 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun setTileSource(source: ITileSource) {
-        currentTileSource = source
-    }
-
-    private fun addLog(level: LogLevel, message: String) {
-        systemLogs.add(0, SystemLog(sdf.format(Date()), level, message))
-    }
-
-    fun toggleConnection() {
-        if (!isConnected) {
-            startUdpListener()
-            isConnected = true
-            speak("Ground control station connected.")
-            addLog(LogLevel.INFO, "GCS Connected. UDP Listener started on port 14550.")
-        } else {
-            stopUdpListener()
-            isConnected = false
-            speak("Connection lost.")
-            addLog(LogLevel.ERROR, "GCS Disconnected.")
-            stopMission()
-        }
-    }
-
-    private fun startUdpListener() {
-        udpJob?.cancel()
-        udpJob = viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val socket = DatagramSocket(14550)
-                val buffer = ByteArray(1024)
-                while (isConnected) {
-                    val packet = DatagramPacket(buffer, buffer.size)
-                    socket.receive(packet)
-                    val data = String(packet.data, 0, packet.length)
-                    parseUdpData(data)
-                }
-                socket.close()
-            } catch (e: Exception) {
-                withContext(Dispatchers.Main) {
-                    addLog(LogLevel.ERROR, "UDP Error: ${e.message}")
-                }
-            }
-        }
-    }
-
-    private fun stopUdpListener() {
-        udpJob?.cancel()
-        udpJob = null
-    }
-
-    private fun parseUdpData(data: String) {
-        // Simple mock MAVLink-like parser: "lat:1.35;lon:103.8;alt:100;spd:15"
-        try {
-            viewModelScope.launch(Dispatchers.Main) {
-                val parts = data.split(";")
-                parts.forEach { part ->
-                    val pair = part.split(":")
-                    if (pair.size == 2) {
-                        when (pair[0]) {
-                            "lat" -> latitude = pair[1].toDouble()
-                            "lon" -> longitude = pair[1].toDouble()
-                            "alt" -> altitude = pair[1].toFloat()
-                            "spd" -> speed = pair[1].toFloat()
-                            "bat" -> batteryLevel = pair[1].toFloat() / 100f
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {}
-    }
-
-    fun startMission(waypoints: List<Waypoint>) {
-        if (isConnected && !isMissionActive) {
-            speak("Starting mission.")
-            activeWaypoints.clear()
-            activeWaypoints.addAll(waypoints)
-            currentWaypointIndex = if (waypoints.isNotEmpty()) 0 else -1
-            
-            isMissionActive = true
-            isRthActive = false
-            missionLogs.clear()
-            
-            addLog(LogLevel.INFO, "Mission Started with ${waypoints.size} waypoints")
-        }
-    }
-
-    fun stopMission() {
-        if (isMissionActive) {
-            speak("Mission aborted.")
-            addLog(LogLevel.INFO, "Mission Aborted/Completed")
-        }
-        isMissionActive = false
-        isRthActive = false
-        currentWaypointIndex = -1
-        activeWaypoints.clear()
-    }
-
-    fun toggleRecording() {
-        isRecording = !isRecording
-        if (isRecording) {
-            speak("Recording started.")
-            addLog(LogLevel.INFO, "Video recording started")
-        } else {
-            speak("Recording saved.")
-            addLog(LogLevel.INFO, "Video recording saved")
-        }
-    }
-
     fun downloadAreaTiles(mapView: MapView, zoomMin: Int, zoomMax: Int) {
-        if (isCaching) return
-        
-        val boundingBox = mapView.boundingBox
         val cacheManager = CacheManager(mapView)
-        
         viewModelScope.launch(Dispatchers.IO) {
             isCaching = true
-            addLog(LogLevel.INFO, "Starting offline map cache download...")
-            
-            cacheManager.downloadAreaAsync(
-                mapView.context,
-                boundingBox,
-                zoomMin,
-                zoomMax,
-                object : CacheManager.CacheManagerCallback {
-                    override fun onTaskComplete() {
-                        isCaching = false
-                        cacheProgress = 1f
-                        viewModelScope.launch(Dispatchers.Main) {
-                            speak("Map caching complete.")
-                            addLog(LogLevel.INFO, "Offline map tiles successfully cached.")
-                        }
-                    }
-
-                    override fun onTaskFailed(errors: Int) {
-                        isCaching = false
-                        viewModelScope.launch(Dispatchers.Main) {
-                            speak("Map caching failed.")
-                            addLog(LogLevel.ERROR, "Failed to download offline map tiles. Errors: $errors")
-                        }
-                    }
-
-                    override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
-                        cacheProgress = progress.toFloat() / 100f
-                    }
-
-                    override fun downloadStarted() {
-                        viewModelScope.launch(Dispatchers.Main) {
-                            speak("Starting map download for current area.")
-                        }
-                    }
-
-                    override fun setPossibleTilesInArea(total: Int) {
-                        // Handle total tiles if needed
-                    }
-                }
-            )
+            cacheManager.downloadAreaAsync(mapView.context, mapView.boundingBox, zoomMin, zoomMax, object : CacheManager.CacheManagerCallback {
+                override fun onTaskComplete() { isCaching = false }
+                override fun onTaskFailed(errors: Int) { isCaching = false }
+                override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) { cacheProgress = progress / 100f }
+                override fun downloadStarted() {}
+                override fun setPossibleTilesInArea(total: Int) {}
+            })
         }
     }
+
+    fun getMissionLogsJson(): String = "[]" // Implementation placeholder for multi-drone
 
     override fun onCleared() {
         tts?.stop()
         tts?.shutdown()
-        stopUdpListener()
         super.onCleared()
-    }
-
-    fun getMissionLogsJson(): String {
-        val sb = StringBuilder()
-        sb.append("[\n")
-        missionLogs.forEachIndexed { index, log ->
-            sb.append("  {\n")
-            sb.append("    \"timestamp\": \"${log.timestamp}\",\n")
-            sb.append("    \"speed\": ${"%.2f".format(log.speed)},\n")
-            sb.append("    \"altitude\": ${"%.2f".format(log.altitude)},\n")
-            sb.append("    \"latitude\": ${"%.6f".format(log.latitude)},\n")
-            sb.append("    \"longitude\": ${"%.6f".format(log.longitude)}\n")
-            sb.append("  }")
-            if (index < missionLogs.size - 1) sb.append(",")
-            sb.append("\n")
-        }
-        sb.append("]")
-        return sb.toString()
     }
 }
