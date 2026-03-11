@@ -403,11 +403,11 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                     }
 
-                    override fun onTaskFailed() {
+                    override fun onTaskFailed(errors: Int) {
                         isCaching = false
                         viewModelScope.launch(Dispatchers.Main) {
                             speak("Map caching failed.")
-                            addLog(LogLevel.ERROR, "Failed to download offline map tiles.")
+                            addLog(LogLevel.ERROR, "Failed to download offline map tiles. Errors: $errors")
                         }
                     }
 
@@ -421,8 +421,8 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
                         }
                     }
 
-                    override fun setProgress(progress: Int, max: Int) {
-                        cacheProgress = progress.toFloat() / max.toFloat()
+                    override fun setPossibleTilesInArea(total: Int) {
+                        // Handle total tiles if needed
                     }
                 }
             )
