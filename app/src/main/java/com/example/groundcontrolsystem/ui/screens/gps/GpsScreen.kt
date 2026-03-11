@@ -20,6 +20,7 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Marker
+import org.osmdroid.views.overlay.Polygon
 
 @Composable
 fun GpsScreen(viewModel: TelemetryViewModel) {
@@ -57,6 +58,18 @@ fun GpsScreen(viewModel: TelemetryViewModel) {
         if (!mapView.overlays.contains(droneMarker)) {
             mapView.overlays.add(droneMarker)
         }
+        
+        // Add NFZ Overlays
+        viewModel.noFlyZones.forEach { nfz ->
+            val circle = Polygon().apply {
+                points = Polygon.pointsAsCircle(nfz.center, nfz.radiusMeter)
+                fillPaint.color = android.graphics.Color.argb(50, 255, 0, 0)
+                outlinePaint.color = android.graphics.Color.RED
+                outlinePaint.strokeWidth = 2f
+                title = "NFZ: ${nfz.name}"
+            }
+            mapView.overlays.add(circle)
+        }
     }
 
     LaunchedEffect(viewModel.latitude, viewModel.longitude) {
@@ -73,6 +86,31 @@ fun GpsScreen(viewModel: TelemetryViewModel) {
             factory = { mapView },
             modifier = Modifier.fillMaxSize()
         )
+
+        // NFZ Warning Overlay
+        if (viewModel.isNearNfz) {
+            Surface(
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .padding(top = 80.dp),
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(8.dp),
+                tonalElevation = 4.dp
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(Icons.Default.MyLocation, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "WARNING: NEAR RESTRICTED AIRSPACE",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onErrorContainer
+                    )
+                }
+            }
+        }
 
         // Overlay Controls
         Column(
