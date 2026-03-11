@@ -14,9 +14,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.osmdroid.tileprovider.cachemanager.CacheManager
 import org.osmdroid.tileprovider.tilesource.ITileSource
 import org.osmdroid.tileprovider.tilesource.TileSourceFactory
+import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
+import org.osmdroid.views.MapView
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.text.SimpleDateFormat
@@ -89,6 +92,10 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     // NFZ State
     val noFlyZones = mutableStateListOf<NoFlyZone>()
     var isNearNfz by mutableStateOf(false)
+
+    // Cache State
+    var isCaching by mutableStateOf(false)
+    var cacheProgress by mutableStateOf(0f)
 
     // Camera & Vision Features
     var isRecording by mutableStateOf(false)
@@ -368,6 +375,57 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         } else {
             speak("Recording saved.")
             addLog(LogLevel.INFO, "Video recording saved")
+        }
+    }
+
+    fun downloadAreaTiles(mapView: MapView, zoomMin: Int, zoomMax: Int) {
+        if (isCaching) return
+        
+        val boundingBox = mapView.boundingBox
+        val cacheManager = CacheManager(mapView)
+        
+        viewModelScope.launch(Dispatchers.IO) {
+            isCaching = true
+            addLog(LogLevel.INFO, "Starting offline map cache download...")
+            
+            cacheManager.downloadAreaAsync(
+                mapView.context,
+                boundingBox,
+                zoomMin,
+                zoomMax,
+                object : CacheManager.CacheManagerCallback {
+                    override fun onTaskComplete() {
+                        isCaching = false
+                        cacheProgress = 1f
+                        viewModelScope.launch(Dispatchers.Main) {
+                            speak("Map caching complete.")
+                            addLog(LogLevel.INFO, "Offline map tiles successfully cached.")
+                        }
+                    }
+
+                    override fun onTaskFailed() {
+                        isCaching = false
+                        viewModelScope.launch(Dispatchers.Main) {
+                            speak("Map caching failed.")
+                            addLog(LogLevel.ERROR, "Failed to download offline map tiles.")
+                        }
+                    }
+
+                    override fun updateProgress(progress: Int, currentZoomLevel: Int, zoomMin: Int, zoomMax: Int) {
+                        cacheProgress = progress.toFloat() / 100f
+                    }
+
+                    override fun downloadStarted() {
+                        viewModelScope.launch(Dispatchers.Main) {
+                            speak("Starting map download for current area.")
+                        }
+                    }
+
+                    override fun setProgress(progress: Int, max: Int) {
+                        cacheProgress = progress.toFloat() / max.toFloat()
+                    }
+                }
+            )
         }
     }
 
