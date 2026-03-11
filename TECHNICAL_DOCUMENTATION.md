@@ -32,6 +32,11 @@ The ViewModel manages the `activeWaypoints` and `currentWaypointIndex`.
 The system uses **Text-To-Speech (TTS)** for critical alerts (e.g., "Low Battery").
 *   **Why TTS?** In a real-world GCS scenario, the operator's eyes are often on the drone or the video feed. Audio alerts provide a secondary channel for critical safety information without requiring the user to look at specific telemetry numbers.
 
+### D. No-Fly Zone (NFZ) Warning System
+The ViewModel maintains a list of `NoFlyZone` objects and constantly monitors the drone's proximity to these areas.
+*   **Haversine Formula:** Proximity is calculated using the Haversine formula to determine the distance between two GPS coordinates in meters.
+*   **Proactive Alerting:** If the drone is within 500m of a restricted zone, the system triggers both a TTS alert and a UI warning state (`isNearNfz`).
+
 ---
 
 ## 3. Navigation and UI Layout
@@ -51,11 +56,13 @@ Navigation is handled by `AppNavHost`. The `navController` and `telemetryViewMod
 ### Mapping (osmdroid)
 The app uses **osmdroid** instead of Google Maps.
 *   **Reasoning:** `osmdroid` is open-source and supports offline tile providers and custom tile sources (like OpenTopoMap), which are critical for drone operations in remote areas with limited internet connectivity.
-*   **Integration:** Since `osmdroid` is a traditional View-based library, it is integrated into Compose using `AndroidView`.
+*   **NFZ Visualization:** `Polygon` overlays are used to draw restricted areas directly on the map.
+*   **Lifecycle Management:** Since `osmdroid` is View-based, it uses `DisposableEffect` to call `mapView.onDetach()` to prevent memory leaks and "map shutdown" errors in Compose.
 
-### Camera (CameraX)
-The `CameraScreen` leverages the **CameraX** Jetpack library.
-*   **Reasoning:** CameraX handles the complexities of different device hardware and aspect ratios automatically. It provides a lifecycle-aware `PreviewView`, ensuring the camera is released immediately when the user navigates away to save battery.
+### Camera (CameraX) & Advanced HUD
+The `CameraScreen` leverages the **CameraX** library with a high-performance `Canvas` overlay.
+*   **Vertical Tapes:** Speed and Altitude are displayed using "scrolling tapes" animated via `animateFloatAsState`. This provides a standard aviation interface familiar to drone pilots.
+*   **Artificial Horizon:** A central attitude indicator represents the drone's spatial orientation.
 
 ### Replay System
 The `ReplayScreen` iterates through `MissionLog` objects.
@@ -67,18 +74,17 @@ The `ReplayScreen` iterates through `MissionLog` objects.
 
 ### Unit Testing (`app/src/test`)
 Focuses on the `TelemetryViewModel`.
-*   **Main Dispatcher Mocking:** Since the ViewModel uses `viewModelScope`, we use `kotlinx-coroutines-test` to swap the Main dispatcher for a `TestDispatcher`. This allows us to test asynchronous logic synchronously.
-*   **InstantTaskExecutorRule:** Used to ensure that background tasks (like updating Compose State) happen immediately during tests.
+*   **Main Dispatcher Mocking:** Since the ViewModel uses `viewModelScope`, we use `kotlinx-coroutines-test` to swap the Main dispatcher for a `TestDispatcher`.
+*   **InstantTaskExecutorRule:** Used to ensure that background tasks happen immediately during tests.
 
 ### UI Testing (`app/src/androidTest`)
 Focuses on user interaction and state-dependent UI.
-*   **ComposeTestRule:** Used to find nodes by text or content description and perform clicks.
-*   **Mocking Context:** We use `ApplicationProvider.getApplicationContext()` because the `TelemetryViewModel` requires an `Application` instance to initialize the TTS engine.
+*   **Real Context:** Unlike unit tests, UI tests use `ApplicationProvider.getApplicationContext()` to ensure Android system services (like the ContentResolver) are available for the components.
 
 ---
 
 ## 6. Key Implementation Decisions
 
-*   **JSON Logging:** Mission logs are stored as a list of data classes but exported as JSON. JSON was chosen for its balance of readability and compatibility with web-based analysis tools.
-*   **Night Vision Mode:** Implemented as a custom `MaterialTheme` wrapper. It doesn't just "turn things dark"; it shifts the color palette towards high-contrast greens and blacks to minimize eye strain and light pollution during night operations.
-*   **Pre-Flight Checklist:** This is a hard-coded safety gate. The "Launch" button is disabled in the UI unless the ViewModel reports `isConnected` and the user manually checks the NFZ (No-Fly Zone) and Battery requirements. This enforces "Safety First" coding.
+*   **JSON Logging:** Mission logs are stored as data classes but exported as JSON for compatibility with external analysis tools.
+*   **Night Vision Mode:** A custom theme wrapper that shifts the palette to high-contrast greens and blacks to preserve the operator's night vision.
+*   **Internal Map Cache:** To support modern Android (API 30+) and emulators, the map cache is redirected to `filesDir`, bypassing complex external storage permission issues.
