@@ -6,9 +6,7 @@ import android.graphics.RectF
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraSelector
-import androidx.camera.core.ImageCapture
 import androidx.camera.core.Preview
-import androidx.camera.core.ZoomState
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.animateFloatAsState
@@ -27,16 +25,12 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.ColorMatrix
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
@@ -72,7 +66,6 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
     val lifecycleOwner = LocalLifecycleOwner.current
     val cameraProviderFuture = remember { ProcessCameraProvider.getInstance(context) }
     
-    var zoomRatio by remember { mutableFloatStateOf(1f) }
     var camera by remember { mutableStateOf<androidx.camera.core.Camera?>(null) }
     val previewView = remember { PreviewView(context) }
 
@@ -116,12 +109,8 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
             modifier = Modifier.fillMaxSize()
         )
 
-        // Thermal/Night Vision Overlay simulation
-        if (viewModel.systemLogs.any { it.message.contains("IR", ignoreCase = true) }) {
-            Canvas(Modifier.fillMaxSize()) {
-                drawRect(color = Color.Green.copy(alpha = 0.15f))
-            }
-        }
+        // Advanced HUD Overlay
+        HudOverlay(viewModel = viewModel)
 
         // Object Tracking UI
         viewModel.trackedObjectBox?.let { box ->
@@ -154,26 +143,6 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
             }
         }
 
-        // Gauges
-        AltitudeLadder(altitude = viewModel.altitude, modifier = Modifier.align(Alignment.CenterEnd).width(80.dp).fillMaxHeight(0.6f).padding(end = 16.dp))
-        CompassGauge(modifier = Modifier.align(Alignment.TopCenter).padding(top = 16.dp).size(120.dp))
-
-        // HUD
-        Column(
-            modifier = Modifier.padding(16.dp).align(Alignment.TopStart).background(Color.Black.copy(alpha = 0.5f), RoundedCornerShape(8.dp)).padding(12.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp)
-        ) {
-            HudText(label = "SPD", value = "${"%.1f".format(viewModel.speed)} km/h")
-            HudText(label = "ALT", value = "${"%.1f".format(viewModel.altitude)} m")
-            if (viewModel.isRecording) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Surface(color = Color.Red, shape = RoundedCornerShape(50), modifier = Modifier.size(8.dp)) {}
-                    Spacer(Modifier.width(4.dp))
-                    Text("REC", color = Color.Red, style = MaterialTheme.typography.labelSmall)
-                }
-            }
-        }
-
         // Controls
         Surface(
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth().padding(16.dp),
@@ -193,7 +162,7 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
                     Icon(if (viewModel.isRecording) Icons.Default.Stop else Icons.Default.FiberManualRecord, contentDescription = "Record", modifier = Modifier.size(36.dp))
                 }
 
-                FilledTonalButton(onClick = { /* Toggle IR via ViewModel log for now */ }) {
+                FilledTonalButton(onClick = { /* IR Toggle logic */ }) {
                     Text("IR")
                 }
             }
@@ -202,43 +171,148 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
 }
 
 @Composable
-fun AltitudeLadder(altitude: Float, modifier: Modifier = Modifier) {
-    val animatedAlt by animateFloatAsState(targetValue = altitude)
+fun HudOverlay(viewModel: TelemetryViewModel) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        // Artificial Horizon / Attitude Indicator Center
+        AttitudeIndicator(modifier = Modifier.align(Alignment.Center).size(300.dp))
+
+        // Left Side: Speed Tape
+        Box(modifier = Modifier.align(Alignment.CenterStart).padding(start = 24.dp)) {
+            VerticalTape(
+                value = viewModel.speed,
+                label = "SPD",
+                unit = "KM/H",
+                color = Color.Cyan,
+                modifier = Modifier.width(80.dp).height(400.dp)
+            )
+        }
+
+        // Right Side: Altitude Tape
+        Box(modifier = Modifier.align(Alignment.CenterEnd).padding(end = 24.dp)) {
+            VerticalTape(
+                value = viewModel.altitude,
+                label = "ALT",
+                unit = "M",
+                color = Color.Yellow,
+                modifier = Modifier.width(80.dp).height(400.dp)
+            )
+        }
+
+        // Top: Compass / Heading
+        Box(modifier = Modifier.align(Alignment.TopCenter).padding(top = 24.dp)) {
+            HeadingIndicator(modifier = Modifier.width(400.dp).height(60.dp))
+        }
+
+        // Bottom Stats
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(bottom = 120.dp, start = 24.dp)
+                .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(4.dp))
+                .padding(8.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            HudStatItem(label = "BAT", value = "${(viewModel.batteryLevel * 100).toInt()}%", color = if(viewModel.batteryLevel > 0.2f) Color.Green else Color.Red)
+            HudStatItem(label = "SIG", value = "${(viewModel.signalStrength * 100).toInt()}%", color = Color.Cyan)
+            if (viewModel.isRecording) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(8.dp).background(Color.Red, RoundedCornerShape(50)))
+                    Spacer(Modifier.width(4.dp))
+                    Text("REC", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun AttitudeIndicator(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
-        drawRoundRect(color = Color.Black.copy(alpha = 0.3f), size = size, cornerRadius = androidx.compose.ui.geometry.CornerRadius(8f))
-        val centerH = size.height / 2
-        for (i in -50..50 step 10) {
-            val labelAlt = (animatedAlt.toInt() / 10 * 10) + i
-            if (labelAlt < 0) continue
-            val yPos = centerH - (labelAlt - animatedAlt) * (size.height / 100f)
+        val centerX = size.width / 2
+        val centerY = size.height / 2
+        
+        // Static Aircraft Reference
+        val aircraftWidth = 100f
+        drawLine(Color.White, Offset(centerX - aircraftWidth, centerY), Offset(centerX - 20f, centerY), strokeWidth = 4f)
+        drawLine(Color.White, Offset(centerX + 20f, centerY), Offset(centerX + aircraftWidth, centerY), strokeWidth = 4f)
+        drawCircle(Color.White, radius = 5f, center = Offset(centerX, centerY))
+        
+        // Pitch/Roll markings would be animated here in a real impl
+        drawContext.canvas.nativeCanvas.drawText("0°", centerX + 110f, centerY + 10f, android.graphics.Paint().apply { 
+            color = android.graphics.Color.WHITE
+            textSize = 30f
+        })
+    }
+}
+
+@Composable
+fun VerticalTape(value: Float, label: String, unit: String, color: Color, modifier: Modifier) {
+    val animatedValue by animateFloatAsState(targetValue = value)
+    
+    Canvas(modifier = modifier) {
+        drawRect(Color.Black.copy(alpha = 0.4f))
+        val stepHeight = size.height / 10
+        val center = size.height / 2
+        
+        // Scale markings
+        for (i in -5..5) {
+            val markValue = (animatedValue.toInt() / 10 * 10) + (i * 10)
+            if (markValue < 0) continue
+            
+            val yPos = center - (markValue - animatedValue) * (stepHeight / 10f)
             if (yPos in 0f..size.height) {
-                drawLine(Color.White, Offset(0f, yPos), Offset(size.width * 0.3f, yPos), strokeWidth = 2f)
-                drawContext.canvas.nativeCanvas.drawText(labelAlt.toString(), size.width * 0.4f, yPos + 10f, android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 30f })
+                drawLine(Color.White.copy(alpha = 0.7f), Offset(0f, yPos), Offset(20f, yPos), strokeWidth = 2f)
+                drawContext.canvas.nativeCanvas.drawText(
+                    markValue.toString(), 25f, yPos + 10f,
+                    android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 24f }
+                )
             }
         }
-        drawLine(Color.Cyan, Offset(0f, centerH), Offset(size.width, centerH), strokeWidth = 3f)
+        
+        // Center pointer
+        val path = Path().apply {
+            moveTo(size.width, center)
+            lineTo(size.width - 30f, center - 20f)
+            lineTo(size.width - 30f, center + 20f)
+            close()
+        }
+        drawPath(path, color)
+        
+        // Label/Value
+        drawContext.canvas.nativeCanvas.drawText(
+            "$label: ${value.toInt()}$unit", 10f, 30f,
+            android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 28f; isFakeBoldText = true }
+        )
     }
 }
 
 @Composable
-fun CompassGauge(modifier: Modifier = Modifier) {
+fun HeadingIndicator(modifier: Modifier) {
     Canvas(modifier = modifier) {
-        val radius = size.minDimension / 2
-        val center = Offset(size.width / 2, size.height / 2)
-        drawCircle(color = Color.White.copy(alpha = 0.5f), radius = radius, center = center, style = Stroke(width = 2f))
-        for (angle in 0 until 360 step 30) {
-            rotate(angle.toFloat()) {
-                drawLine(Color.White, Offset(center.x, center.y - radius), Offset(center.x, center.y - radius + 15f), strokeWidth = 2f)
-            }
+        drawRect(Color.Black.copy(alpha = 0.4f))
+        val centerX = size.width / 2
+        
+        // Pointer
+        val pointer = Path().apply {
+            moveTo(centerX, size.height)
+            lineTo(centerX - 10f, size.height - 15f)
+            lineTo(centerX + 10f, size.height - 15f)
+            close()
         }
-        drawLine(Color.Cyan, center, Offset(center.x, center.y - radius * 0.8f), strokeWidth = 4f)
+        drawPath(pointer, Color.Cyan)
+        
+        // Heading text (Mocked at 000 North)
+        drawContext.canvas.nativeCanvas.drawText(
+            "000", centerX - 25f, 35f,
+            android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 32f; isFakeBoldText = true }
+        )
     }
 }
 
 @Composable
-fun HudText(label: String, value: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        Text(text = "$label:", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
-        Text(text = value, style = MaterialTheme.typography.bodySmall, color = Color.White)
+fun HudStatItem(label: String, value: String, color: Color) {
+    Column {
+        Text(label, color = color.copy(alpha = 0.7f), style = MaterialTheme.typography.labelSmall)
+        Text(value, color = Color.White, style = MaterialTheme.typography.bodyMedium)
     }
 }
