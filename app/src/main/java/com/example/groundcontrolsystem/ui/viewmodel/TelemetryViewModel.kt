@@ -22,8 +22,7 @@ import java.net.DatagramSocket
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import kotlin.math.abs
-import kotlin.math.max
+import kotlin.math.*
 
 enum class LogLevel {
     INFO, WARNING, ERROR, DEBUG
@@ -56,6 +55,13 @@ data class MissionLog(
     val longitude: Double
 )
 
+data class NoFlyZone(
+    val id: String,
+    val name: String,
+    val center: GeoPoint,
+    val radiusMeter: Double
+)
+
 class TelemetryViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
     var batteryLevel by mutableStateOf(1f)
     var isConnected by mutableStateOf(false)
@@ -80,6 +86,10 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     
     val telemetryHistory = mutableStateListOf<MissionLog>()
 
+    // NFZ State
+    val noFlyZones = mutableStateListOf<NoFlyZone>()
+    var isNearNfz by mutableStateOf(false)
+
     // Camera & Vision Features
     var isRecording by mutableStateOf(false)
     var trackedObjectBox by mutableStateOf<RectF?>(null)
@@ -96,6 +106,10 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         tts = TextToSpeech(application, this)
         addLog(LogLevel.INFO, "System initialized and ready")
         
+        // Add sample No-Fly Zones
+        noFlyZones.add(NoFlyZone("1", "Airport Alpha", GeoPoint(1.3644, 103.9915), 5000.0))
+        noFlyZones.add(NoFlyZone("2", "Government Plaza", GeoPoint(1.3521, 103.8198 + 0.05), 2000.0))
+
         // Continuous Telemetry & TTS Monitoring
         viewModelScope.launch {
             while (true) {
@@ -104,6 +118,7 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
                     signalStrength = (0.7f + (Math.random().toFloat() * 0.3f)).coerceIn(0f, 1f)
                     
                     checkAlerts()
+                    checkNfzProximity()
 
                     if (isMissionActive) {
                         simulateFlight()
@@ -143,6 +158,32 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
             speak("Low battery detected. Emergency return to home initiated.")
             addLog(LogLevel.WARNING, "Emergency RTH initiated due to low battery")
         }
+    }
+
+    private fun checkNfzProximity() {
+        var nearAny = false
+        noFlyZones.forEach { nfz ->
+            val distance = calculateDistance(latitude, longitude, nfz.center.latitude, nfz.center.longitude)
+            if (distance < nfz.radiusMeter + 500.0) { // 500m buffer
+                nearAny = true
+                if (!isNearNfz) {
+                    speak("Warning: Approaching restricted air space. ${nfz.name}")
+                    addLog(LogLevel.WARNING, "Restricted Airspace Proximity: ${nfz.name}")
+                }
+            }
+        }
+        isNearNfz = nearAny
+    }
+
+    private fun calculateDistance(lat1: Double, lon1: Double, lat2: Double, lon2: Double): Double {
+        val r = 6371000.0 // Earth radius in meters
+        val dLat = Math.toRadians(lat2 - lat1)
+        val dLon = Math.toRadians(lon2 - lon1)
+        val a = sin(dLat / 2) * sin(dLat / 2) +
+                cos(Math.toRadians(lat1)) * cos(Math.toRadians(lat2)) *
+                sin(dLon / 2) * sin(dLon / 2)
+        val c = 2 * atan2(sqrt(a), sqrt(1 - a))
+        return r * c
     }
 
     private suspend fun simulateFlight() {
