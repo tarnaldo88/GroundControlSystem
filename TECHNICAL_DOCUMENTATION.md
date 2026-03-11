@@ -28,11 +28,17 @@ The drone sends data via UDP packets (simulating industry standards like MAVLink
 The ViewModel manages the `activeWaypoints` and `currentWaypointIndex`.
 *   **Reasoning:** Keeping the mission state in the ViewModel allows the `MissionPlanScreen` to define the mission, while the `DashboardScreen` or `GpsScreen` can simultaneously monitor progress.
 
-### C. Safety & Feedback (TTS)
+### C. Multi-Drone Support
+The system is designed to support swarms and multi-drone operations through a `mutableStateMapOf<String, DroneState>`.
+*   **DroneState Object:** Each drone is represented by a persistent state object containing its battery, signal, GPS coordinates, and specific mission progress.
+*   **Active Control:** The ViewModel maintains an `activeDroneId` which determines which telemetry data is prioritized for the HUD and Dashboard screens. 
+*   **Concurrency:** Simulation and telemetry parsing run concurrently for all registered drones, allowing the user to monitor background drones while controlling the primary unit.
+
+### D. Safety & Feedback (TTS)
 The system uses **Text-To-Speech (TTS)** for critical alerts (e.g., "Low Battery").
 *   **Why TTS?** In a real-world GCS scenario, the operator's eyes are often on the drone or the video feed. Audio alerts provide a secondary channel for critical safety information without requiring the user to look at specific telemetry numbers.
 
-### D. No-Fly Zone (NFZ) Warning System
+### E. No-Fly Zone (NFZ) Warning System
 The ViewModel maintains a list of `NoFlyZone` objects and constantly monitors the drone's proximity to these areas.
 *   **Haversine Formula:** Proximity is calculated using the Haversine formula to determine the distance between two GPS coordinates in meters.
 *   **Proactive Alerting:** If the drone is within 500m of a restricted zone, the system triggers both a TTS alert and a UI warning state (`isNearNfz`).
@@ -75,7 +81,7 @@ The `ReplayScreen` iterates through `MissionLog` objects.
 ### Unit Testing (`app/src/test`)
 Focuses on the `TelemetryViewModel`.
 *   **Main Dispatcher Mocking:** Since the ViewModel uses `viewModelScope`, we use `kotlinx-coroutines-test` to swap the Main dispatcher for a `TestDispatcher`.
-*   **InstantTaskExecutorRule:** Used to ensure that background tasks happen immediately during tests.
+*   **InstantTaskExecutorRule:** Used to ensure that background tasks (like updating Compose State) happen immediately during tests.
 
 ### UI Testing (`app/src/androidTest`)
 Focuses on user interaction and state-dependent UI.
@@ -88,3 +94,4 @@ Focuses on user interaction and state-dependent UI.
 *   **JSON Logging:** Mission logs are stored as data classes but exported as JSON for compatibility with external analysis tools.
 *   **Night Vision Mode:** A custom theme wrapper that shifts the palette to high-contrast greens and blacks to preserve the operator's night vision.
 *   **Internal Map Cache:** To support modern Android (API 30+) and emulators, the map cache is redirected to `filesDir`, bypassing complex external storage permission issues.
+*   **Offline Caching:** Implemented via `CacheManager` to allow users to pre-download regional tiles for mission environments lacking connectivity.
