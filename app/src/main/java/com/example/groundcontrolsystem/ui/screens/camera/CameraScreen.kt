@@ -127,7 +127,7 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
                     "TRACKING LOCK",
                     box.left, box.top - 10f,
                     android.graphics.Paint().apply {
-                        this.color = android.graphics.Color.CYAN
+                        setColor(android.graphics.Color.CYAN)
                         textSize = 40f
                         isFakeBoldText = true
                     }
@@ -293,7 +293,7 @@ fun AttitudeIndicator(modifier: Modifier = Modifier) {
         
         // Pitch/Roll markings
         drawContext.canvas.nativeCanvas.drawText("0°", centerX + 110f, centerY + 10f, android.graphics.Paint().apply { 
-            this.color = android.graphics.Color.WHITE
+            setColor(android.graphics.Color.WHITE)
             textSize = 30f
         })
     }
@@ -319,7 +319,7 @@ fun VerticalTape(value: Float, label: String, unit: String, color: Color, modifi
                 drawContext.canvas.nativeCanvas.drawText(
                     markValue.toString(), 25f, yPos + 10f,
                     android.graphics.Paint().apply {
-                        this.color = android.graphics.Color.WHITE
+                        setColor(android.graphics.Color.WHITE)
                         textSize = 24f
                     }
                 )
@@ -339,7 +339,7 @@ fun VerticalTape(value: Float, label: String, unit: String, color: Color, modifi
         drawContext.canvas.nativeCanvas.drawText(
             "$label: ${value.toInt()}$unit", 10f, 30f,
             android.graphics.Paint().apply {
-                this.color = android.graphics.Color.WHITE
+                setColor(android.graphics.Color.WHITE)
                 textSize = 28f
                 isFakeBoldText = true
             }
@@ -366,7 +366,7 @@ fun HeadingIndicator(modifier: Modifier) {
         drawContext.canvas.nativeCanvas.drawText(
             "000", centerX - 25f, 35f,
             android.graphics.Paint().apply {
-                this.color = android.graphics.Color.WHITE
+                setColor(android.graphics.Color.WHITE)
                 textSize = 32f
                 isFakeBoldText = true
             }
