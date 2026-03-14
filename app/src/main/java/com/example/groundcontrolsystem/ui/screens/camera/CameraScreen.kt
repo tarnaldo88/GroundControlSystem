@@ -126,7 +126,11 @@ fun CameraContent(viewModel: TelemetryViewModel, modifier: Modifier = Modifier) 
                 drawContext.canvas.nativeCanvas.drawText(
                     "TRACKING LOCK",
                     box.left, box.top - 10f,
-                    android.graphics.Paint().apply { color = android.graphics.Color.CYAN; textSize = 40f; isFakeBoldText = true }
+                    android.graphics.Paint().apply {
+                        this.color = android.graphics.Color.CYAN
+                        textSize = 40f
+                        isFakeBoldText = true
+                    }
                 )
             }
         }
@@ -289,7 +293,7 @@ fun AttitudeIndicator(modifier: Modifier = Modifier) {
         
         // Pitch/Roll markings
         drawContext.canvas.nativeCanvas.drawText("0°", centerX + 110f, centerY + 10f, android.graphics.Paint().apply { 
-            color = android.graphics.Color.WHITE
+            this.color = android.graphics.Color.WHITE
             textSize = 30f
         })
     }
@@ -314,7 +318,10 @@ fun VerticalTape(value: Float, label: String, unit: String, color: Color, modifi
                 drawLine(Color.White.copy(alpha = 0.7f), Offset(0f, yPos), Offset(20f, yPos), strokeWidth = 2f)
                 drawContext.canvas.nativeCanvas.drawText(
                     markValue.toString(), 25f, yPos + 10f,
-                    android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 24f }
+                    android.graphics.Paint().apply {
+                        this.color = android.graphics.Color.WHITE
+                        textSize = 24f
+                    }
                 )
             }
         }
@@ -331,7 +338,11 @@ fun VerticalTape(value: Float, label: String, unit: String, color: Color, modifi
         // Label/Value
         drawContext.canvas.nativeCanvas.drawText(
             "$label: ${value.toInt()}$unit", 10f, 30f,
-            android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 28f; isFakeBoldText = true }
+            android.graphics.Paint().apply {
+                this.color = android.graphics.Color.WHITE
+                textSize = 28f
+                isFakeBoldText = true
+            }
         )
     }
 }
@@ -354,7 +365,11 @@ fun HeadingIndicator(modifier: Modifier) {
         // Heading text
         drawContext.canvas.nativeCanvas.drawText(
             "000", centerX - 25f, 35f,
-            android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 32f; isFakeBoldText = true }
+            android.graphics.Paint().apply {
+                this.color = android.graphics.Color.WHITE
+                textSize = 32f
+                isFakeBoldText = true
+            }
         )
     }
 }
