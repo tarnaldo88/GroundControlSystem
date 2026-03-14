@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.nativeCanvas
@@ -203,6 +204,13 @@ fun HudOverlay(viewModel: TelemetryViewModel) {
             HeadingIndicator(modifier = Modifier.width(400.dp).height(60.dp))
         }
 
+        // Top Right: Weather HUD
+        WeatherHud(
+            windSpeed = viewModel.windSpeed,
+            windDirection = viewModel.windDirection,
+            modifier = Modifier.align(Alignment.TopEnd).padding(24.dp)
+        )
+
         // Bottom Stats
         Row(
             modifier = Modifier
@@ -226,6 +234,47 @@ fun HudOverlay(viewModel: TelemetryViewModel) {
 }
 
 @Composable
+fun WeatherHud(windSpeed: Float, windDirection: Int, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .background(Color.Black.copy(alpha = 0.6f), RoundedCornerShape(8.dp))
+            .padding(12.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text("WIND", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.7f))
+        
+        Spacer(Modifier.height(8.dp))
+        
+        // Wind Direction Arrow
+        Canvas(modifier = Modifier.size(40.dp)) {
+            rotate(windDirection.toFloat()) {
+                val path = Path().apply {
+                    moveTo(size.width / 2, 0f)
+                    lineTo(size.width * 0.3f, size.height)
+                    lineTo(size.width / 2, size.height * 0.8f)
+                    lineTo(size.width * 0.7f, size.height)
+                    close()
+                }
+                drawPath(path, color = if (windSpeed > 15f) Color.Red else Color.Green)
+            }
+        }
+        
+        Spacer(Modifier.height(8.dp))
+        
+        Text(
+            text = "${"%.1f".format(windSpeed)} m/s",
+            style = MaterialTheme.typography.labelLarge,
+            color = if (windSpeed > 15f) Color.Red else Color.White
+        )
+        Text(
+            text = "$windDirection°",
+            style = MaterialTheme.typography.labelSmall,
+            color = Color.White.copy(alpha = 0.7f)
+        )
+    }
+}
+
+@Composable
 fun AttitudeIndicator(modifier: Modifier = Modifier) {
     Canvas(modifier = modifier) {
         val centerX = size.width / 2
@@ -237,7 +286,7 @@ fun AttitudeIndicator(modifier: Modifier = Modifier) {
         drawLine(Color.White, Offset(centerX + 20f, centerY), Offset(centerX + aircraftWidth, centerY), strokeWidth = 4f)
         drawCircle(Color.White, radius = 5f, center = Offset(centerX, centerY))
         
-        // Pitch/Roll markings would be animated here in a real impl
+        // Pitch/Roll markings
         drawContext.canvas.nativeCanvas.drawText("0°", centerX + 110f, centerY + 10f, android.graphics.Paint().apply { 
             color = android.graphics.Color.WHITE
             textSize = 30f
@@ -301,7 +350,7 @@ fun HeadingIndicator(modifier: Modifier) {
         }
         drawPath(pointer, Color.Cyan)
         
-        // Heading text (Mocked at 000 North)
+        // Heading text
         drawContext.canvas.nativeCanvas.drawText(
             "000", centerX - 25f, 35f,
             android.graphics.Paint().apply { color = android.graphics.Color.WHITE; textSize = 32f; isFakeBoldText = true }

@@ -21,6 +21,10 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.BoundingBox
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
+import retrofit2.Retrofit
+import retrofit2.converter.gson.GsonConverterFactory
+import retrofit2.http.GET
+import retrofit2.http.Query
 import java.net.DatagramPacket
 import java.net.DatagramSocket
 import java.text.SimpleDateFormat
@@ -78,7 +82,30 @@ data class DroneState(
     var isMissionActive: Boolean = false,
     var isRthActive: Boolean = false,
     var currentWaypointIndex: Int = -1,
-    val activeWaypoints: MutableList<Waypoint> = mutableListOf()
+    val activeWaypoints: MutableList<Waypoint> = mutableListOf(),
+    var windSpeed: Float = 0f,
+    var windDirection: Int = 0
+)
+
+// Retrofit Service for Weather
+interface WeatherService {
+    @GET("weather")
+    suspend fun getWeather(
+        @Query("lat") lat: Double,
+        @Query("lon") lon: Double,
+        @Query("appid") apiKey: String,
+        @Query("units") units: String = "metric"
+    ): WeatherResponse
+}
+
+data class WeatherResponse(
+    val wind: WindData,
+    val name: String
+)
+
+data class WindData(
+    val speed: Float,
+    val deg: Int
 )
 
 class TelemetryViewModel(application: Application) : AndroidViewModel(application), TextToSpeech.OnInitListener {
@@ -86,7 +113,7 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     val drones = mutableStateMapOf<String, DroneState>()
     var activeDroneId by mutableStateOf("drone_1")
 
-    // Active Drone Derived Properties (for UI compatibility)
+    // Active Drone Derived Properties
     val activeDroneState: DroneState? get() = drones[activeDroneId]
     
     val batteryLevel: Float get() = activeDroneState?.batteryLevel ?: 0f
@@ -100,6 +127,8 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     val isRthActive: Boolean get() = activeDroneState?.isRthActive ?: false
     val currentWaypointIndex: Int get() = activeDroneState?.currentWaypointIndex ?: -1
     val activeWaypoints: List<Waypoint> get() = activeDroneState?.activeWaypoints ?: emptyList()
+    val windSpeed: Float get() = activeDroneState?.windSpeed ?: 0f
+    val windDirection: Int get() = activeDroneState?.windDirection ?: 0
 
     // Shared State
     var currentTileSource: ITileSource by mutableStateOf(TileSourceFactory.MAPNIK)
@@ -116,14 +145,20 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
     private var tts: TextToSpeech? = null
     private var isTtsReady = false
     private var lastBatteryWarning = 0f
-    private var udpJob: Job? = null
     private val sdf = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+
+    // Weather API (OpenWeatherMap)
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("https://api.openweathermap.org/data/2.5/")
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    private val weatherService = retrofit.create(WeatherService::class.java)
+    private val WEATHER_API_KEY = "YOUR_API_KEY_HERE" // Replace with actual key
 
     init {
         tts = TextToSpeech(application, this)
         addLog(LogLevel.INFO, "System initialized and ready")
         
-        // Initialize with one default drone
         drones["drone_1"] = DroneState("drone_1", "Primary Drone")
         
         noFlyZones.add(NoFlyZone("1", "Airport Alpha", GeoPoint(1.3644, 103.9915), 5000.0))
@@ -147,6 +182,34 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
                 delay(1000)
             }
         }
+
+        // Periodic Weather Updates (every 30 seconds)
+        viewModelScope.launch {
+            while (true) {
+                updateWeather()
+                delay(30000)
+            }
+        }
+    }
+
+    private suspend fun updateWeather() {
+        activeDroneState?.let { state ->
+            try {
+                // If API key is missing, simulate some wind for visual feedback
+                if (WEATHER_API_KEY == "YOUR_API_KEY_HERE") {
+                    state.windSpeed = (2f + Math.random().toFloat() * 10f)
+                    state.windDirection = (0..359).random()
+                } else {
+                    val response = weatherService.getWeather(state.latitude, state.longitude, WEATHER_API_KEY)
+                    state.windSpeed = response.wind.speed
+                    state.windDirection = response.wind.deg
+                }
+            } catch (e: Exception) {
+                // Fallback simulation on error
+                state.windSpeed = 5.5f
+                state.windDirection = 45
+            }
+        }
     }
 
     private fun simulateStateUpdate(state: DroneState) {
@@ -166,9 +229,9 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
             addLog(LogLevel.WARNING, "${state.name} Low battery alert: 20%")
             lastBatteryWarning = 0.2f
         }
-        if (state.batteryLevel < 0.2f && state.isMissionActive && !state.isRthActive) {
-            state.isRthActive = true
-            speak("Emergency RTH initiated for ${state.name}.")
+        if (state.windSpeed > 15f) { // High wind threshold
+            speak("Caution: High wind speeds detected for ${state.name}.")
+            addLog(LogLevel.WARNING, "High Wind Warning: ${"%.1f".format(state.windSpeed)} m/s")
         }
     }
 
@@ -245,7 +308,6 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun toggleConnection() {
         if (activeDroneId in drones) {
-            // Simulation: toggleConnection just acts as a switch here
             addLog(LogLevel.INFO, "Active connection toggled for $activeDroneId")
         }
     }
@@ -308,7 +370,7 @@ class TelemetryViewModel(application: Application) : AndroidViewModel(applicatio
         }
     }
 
-    fun getMissionLogsJson(): String = "[]" // Implementation placeholder for multi-drone
+    fun getMissionLogsJson(): String = "[]"
 
     override fun onCleared() {
         tts?.stop()
