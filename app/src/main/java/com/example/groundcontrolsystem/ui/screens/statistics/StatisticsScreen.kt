@@ -135,7 +135,7 @@ fun EnhancedStatChart(
                             "Awaiting telemetry stream...",
                             size.width / 2 - 100f, size.height / 2,
                             android.graphics.Paint().apply {
-                                color = android.graphics.Color.GRAY
+                                setColor(android.graphics.Color.GRAY)
                                 textSize = 30f
                             }
                         )
@@ -148,7 +148,7 @@ fun EnhancedStatChart(
 
                     // Draw Grid Lines
                     val gridPaint = android.graphics.Paint().apply {
-                        android.graphics.Color.LTGRAY
+                        setColor(android.graphics.Color.LTGRAY)
                         alpha = 50
                     }
                     for (i in 0..4) {
