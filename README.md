@@ -20,6 +20,7 @@ The GCS follows the **MVVM (Model-View-ViewModel)** architectural pattern, ensur
 *   **Networking:** Retrofit 2 for Weather API integration; DatagramSocket (UDP) simulation for telemetry.
 *   **Asynchrony:** Kotlin Coroutines & Flow for non-blocking I/O and periodic background tasks (weather updates, telemetry simulation).
 *   **Notifications:** Text-To-Speech (TTS) for eyes-free safety alerts.
+*   **Testing:** JUnit 4, Mockito, and Compose Test Rule for robust verification.
 
 ## 🌟 Detailed Feature Breakdown
 
@@ -71,12 +72,22 @@ com.example.groundcontrolsystem
 └── model                  # Data classes (Waypoint, DroneState, SystemLog)
 ```
 
-## 🧪 Testing Strategy
+## 🧪 Testing Suite
 
-*   **Unit Testing (JUnit/Mockito):** Focused on the `TelemetryViewModel`. Tests include flight simulation logic, distance calculations, and state transition validation.
-*   **UI Testing (Espresso/Compose):** End-to-end testing of critical user flows:
-    *   Waypoint addition and mission start sequence.
-    *   Dashboard responsiveness to simulated telemetry shifts.
+The project includes a comprehensive testing suite covering both business logic and UI interactions.
+
+### Unit Tests (`app/src/test`)
+*   **`TelemetryViewModelTest`**: Validates the core logic of the system, including:
+    *   Multi-drone registration and switching.
+    *   Mission lifecycle (Start, Stop, Progression).
+    *   Safety alert triggers (Battery, High Wind, NFZ proximity).
+    *   Flight simulation accuracy.
+
+### Instrumentation Tests (`app/src/androidTest`)
+*   **`DashboardScreenTest`**: Ensures telemetry cards reflect the ViewModel state and action buttons (Connect/Disconnect) function correctly.
+*   **`CameraScreenTest`**: Verifies the HUD overlay (Speed/Alt tapes) and recording state toggles.
+*   **`MissionPlanScreenTest`**: Tests the waypoint planning workflow and pre-flight checklist enforcement.
+*   **`LogsScreenTest`**: Checks the diagnostic logging system, including level-based filtering and clearing functionality.
 
 ## 🏁 How to Run
 
