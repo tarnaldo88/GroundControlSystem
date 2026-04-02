@@ -1,11 +1,14 @@
 package com.example.groundcontrolsystem.ui.screens.settings
 
 import android.content.Context
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.modifier.ModifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 
@@ -52,6 +55,26 @@ fun SettingsScreen(
                 CheckSetting("Require NFZ Check", checklistNfz) { 
                     checklistNfz = it
                     prefs.edit().putBoolean("check_nfz", it).apply()
+                }
+            }
+        }
+
+        Card(modifier = Modifier.fillMaxWidth()) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("External Resources", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "Learn more about UAV safety and regulations.",
+                    style= MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                Button(onClick = {
+                        val webpage: Uri = Uri.parse("https://www.faa.gov/uas")
+                        val intent = Intent(Intent.ACTION_VIEW, webpage)
+                        context.startActivity(intent)
+                    },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Visit Official UAV Portal")
                 }
             }
         }
