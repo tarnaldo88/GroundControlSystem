@@ -171,5 +171,6 @@ fun LeftNavRail(
                 }
             }
         )
+        //next plan is to have webview where browser is shown in app
     }
 }
