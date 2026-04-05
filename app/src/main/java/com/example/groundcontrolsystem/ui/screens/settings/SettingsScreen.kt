@@ -8,14 +8,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.modifier.ModifierLocalConsumer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
+import com.example.groundcontrolsystem.ui.navigation.Routes
 
 @Composable
 fun SettingsScreen(
     isNightVision: Boolean,
-    onNightVisionToggle: (Boolean) -> Unit
+    onNightVisionToggle: (Boolean) -> Unit,
+    navController: NavController? = null
 ) {
     val context = LocalContext.current
     val prefs = remember { context.getSharedPreferences("gcs_settings", Context.MODE_PRIVATE) }
@@ -68,9 +70,13 @@ fun SettingsScreen(
                 )
                 Spacer(modifier = Modifier.height(8.dp))
                 Button(onClick = {
-                        val webpage: Uri = Uri.parse("https://www.faa.gov/uas")
-                        val intent = Intent(Intent.ACTION_VIEW, webpage)
-                        context.startActivity(intent)
+                        if (navController != null) {
+                            navController.navigate(Routes.WebResources.route)
+                        } else {
+                            val webpage: Uri = Uri.parse("https://www.faa.gov/uas")
+                            val intent = Intent(Intent.ACTION_VIEW, webpage)
+                            context.startActivity(intent)
+                        }
                     },
                         modifier = Modifier.fillMaxWidth()
                     ) {
