@@ -36,7 +36,8 @@ fun AppNavHost(
         composable(Routes.Settings.route) { 
             SettingsScreen(
                 isNightVision = isNightVision,
-                onNightVisionToggle = onNightVisionToggle
+                onNightVisionToggle = onNightVisionToggle,
+                navController = navController
             ) 
         }
         composable(Routes.Gps.route) { 
