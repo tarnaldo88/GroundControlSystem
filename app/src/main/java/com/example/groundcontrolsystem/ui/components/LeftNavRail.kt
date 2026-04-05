@@ -1,7 +1,5 @@
 package com.example.groundcontrolsystem.ui.components
 
-import android.content.Intent
-import android.net.Uri
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,7 +33,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -57,13 +54,11 @@ import com.example.groundcontrolsystem.ui.navigation.Routes
  * 3. THE POP-UP (AlertDialog):
  *    - `onDismissRequest`: Handles closing when the user clicks outside or presses back.
  *    - `title` & `text`: Basic descriptive content.
- *    - `confirmButton`: This is where our primary action button lives.
+ *    - `confirmButton`: Navigates to the internal WebResources route.
  * 
- * 4. OPENING EXTERNAL WEBSITES:
- *    We use an "Implicit Intent". 
- *    - `Uri.parse("url")`: Converts the string to a URI object.
- *    - `Intent(Intent.ACTION_VIEW, uri)`: Tells Android we want to "view" this URI.
- *    - `context.startActivity(intent)`: The system finds the best app (usually a browser) to handle it.
+ * 4. INTERNAL WEB VIEW:
+ *    Instead of opening an external browser, we navigate to a dedicated screen 
+ *    (`WebResourcesScreen`) that hosts a WebView, keeping the user inside the GCS app.
  */
 
 private data class NavItem(
@@ -77,7 +72,6 @@ fun LeftNavRail(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    val context = LocalContext.current
     var showResourcesDialog by remember { mutableStateOf(false) }
 
     val items = listOf(
@@ -147,7 +141,7 @@ fun LeftNavRail(
                     Text("Access official UAV portals and flight safety documentation.")
                     Spacer(Modifier.height(4.dp))
                     Text(
-                        "Note: This will open your device's web browser.",
+                        "Note: This will open the portal inside the app.",
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -156,9 +150,7 @@ fun LeftNavRail(
             confirmButton = {
                 Button(
                     onClick = {
-                        val webpage: Uri = Uri.parse("https://www.faa.gov/uas")
-                        val intent = Intent(Intent.ACTION_VIEW, webpage)
-                        context.startActivity(intent)
+                        navController.navigate(Routes.WebResources.route)
                         showResourcesDialog = false
                     }
                 ) {
@@ -171,6 +163,5 @@ fun LeftNavRail(
                 }
             }
         )
-        //next plan is to have webview where browser is shown in app
     }
 }
