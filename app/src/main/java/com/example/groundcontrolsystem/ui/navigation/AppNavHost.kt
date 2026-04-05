@@ -54,5 +54,8 @@ fun AppNavHost(
         composable(Routes.Replay.route) {
             ReplayScreen(telemetryViewModel)
         }
+        composable(Routes.WebResources.route) {
+            WebResourcesScreen()
+        }
     }
 }
