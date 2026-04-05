@@ -8,5 +8,6 @@ public enum class Routes(val route: String) {
     Logs("logs"),
     MissionPlan("mission_plan"),
     Statistics("statistics"),
-    Replay("replay")
+    Replay("replay"),
+    WebResources("web_resources")
 }
