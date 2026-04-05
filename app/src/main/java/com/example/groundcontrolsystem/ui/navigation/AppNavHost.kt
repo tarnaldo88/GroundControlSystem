@@ -13,6 +13,7 @@ import com.example.groundcontrolsystem.ui.screens.settings.SettingsScreen
 import com.example.groundcontrolsystem.ui.screens.missionplan.MissionPlanScreen
 import com.example.groundcontrolsystem.ui.screens.statistics.StatisticsScreen
 import com.example.groundcontrolsystem.ui.screens.replay.ReplayScreen
+import com.example.groundcontrolsystem.ui.screens.web.WebResourcesScreen
 import com.example.groundcontrolsystem.ui.viewmodel.TelemetryViewModel
 
 @Composable
