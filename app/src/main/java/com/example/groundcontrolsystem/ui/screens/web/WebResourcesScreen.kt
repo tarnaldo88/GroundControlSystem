@@ -11,8 +11,8 @@ import androidx.compose.ui.viewinterop.AndroidView
 
 @Composable
 fun WebResourcesScreen(
-    url: String = "https://www.faa.gov/uas",
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    url: String = "https://www.faa.gov/uas"
 ) {
     Column(modifier = modifier.fillMaxSize()) {
         AndroidView(
